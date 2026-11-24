@@ -3,7 +3,7 @@
   工具名稱：拍照記錄（iOS 風格版）
   原檔：外部 AI 製作的「用餐記錄」（開發日期 2026-11-23；原檔註記 AI 協作：Claude），資料庫名稱沿用 mealcam 以保留舊資料
   標示：GROK 輔助・作者：帥
-  製作日期：2026-11-24　修改日期：2026-11-24 22:51
+  製作日期：2026-11-24　修改日期：2026-11-25 00:07（v2 開工 2026-11-24 23:19）
   本版修改：
     1. 外觀全面改為 iOS 風格（系統字型、#F2F2F7 底、白色圓角卡片、分組列表、底部分頁列、safe-area）；色弱友善（顏色＋文字＋符號）
     2. 工具名稱改為「拍照記錄」
@@ -11,6 +11,11 @@
     4. 新增「統計」分頁：本月／本週總花費、日平均、本月各類別（圓環圖＋長條）、最近 30 天每日花費（只讀取，不改資料）
     5. 工程師複查：金額範圍提示、補登未來日期要先詢問
     6. 外觀改為 iOS 27 Liquid Glass 風格（浮動玻璃分頁列＋醒目「拍照」分頁、捲動霧面導覽列、內縮大圓角面板、膠囊按鈕、大圖卡片、類別圖示）
+  更新紀錄（v2，2026-11-25 00:07）：
+    7. 記帳日曆：月曆上每天合計金額，點一天列出那天紀錄；寬度 < 768px 一天一列（單欄），>= 768px 7 欄
+    8. 消費地圖：記一筆可選存位置（按鈕才定位／手動填／地圖點選），位置存在同一筆紀錄的選填欄位 loc；地圖用 OpenStreetMap 圖磚，按「顯示地圖」才連網
+    9. 離線使用：GROK-photo-notes-sw.js（只管 photonotes-shell- 快取，不碰 mealcam-mirror-v1）
+   10. 主畫面圖示：GROK-photo-notes.webmanifest、GROK-photo-notes-icon-180/192/512.png
   iOS 27 設計查證來源（2026-11-24 查）：
     https://www.macrumors.com/2026/06/10/how-liquid-glass-is-changing-in-ios-27/
     https://designfornative.com/what-designers-need-to-know-about-ios-27/
@@ -21,7 +26,7 @@
     https://developer.apple.com/videos/play/wwdc2025/356/
   資料相容（不可改）：localStorage mealcam.settings／mealcam.meta.v1／mealcam.diag／mealcam.launches／mealcam.lastBackup；
     IndexedDB mealcam 版本 1、store photos（keyPath id）；Cache Storage mealcam-mirror-v1；備份 JSON {app:"mealcam",version:1,...}
-  資料存放：照片存在本機瀏覽器 IndexedDB（不上傳、不取定位、不需帳號）
+  資料存放：照片和位置存在本機瀏覽器 IndexedDB（不上傳、不需帳號）；按「取得目前位置」才定位；看地圖時才向 OpenStreetMap 下載地圖圖片
   外部函式庫：jsPDF 2.5.1（已內嵌於本檔，完全離線可用；MIT 授權）
 -->
 <html lang="zh-Hant">
@@ -34,6 +39,8 @@
 <meta name="apple-mobile-web-app-title" content="拍照記錄">
 <title>拍照記錄</title>
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KICA8ZGVmcz4KICAgIDwhLS0g6IOM5pmv77ya5LiK5Lqu5LiL5pqXICsg6aCC6YOo5YWJ5pqIIC0tPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMC42IiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzFhYTM4ZCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMwODQxM2EiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9Imdsb3ciIGN4PSIwLjMiIGN5PSIwLjE1IiByPSIwLjciPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNmZmYiIHN0b3Atb3BhY2l0eT0iLjI4Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2ZmZiIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogICAgPCEtLSDmqZ/ouqvvvJrnmb3liLDmt7rngbDvvIzlgZrlh7rlnJPlvKfpq5TnqY0gLS0+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJvZHkiIHgxPSIwIiB5MT0iMCIgeDI9IjAiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjZmZmZmZmIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iLjU1IiBzdG9wLWNvbG9yPSIjZjFmNGYzIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2NmZDlkNiIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0idG9wIiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2ZmZmZmZiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNkZmU3ZTQiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8IS0tIOmPoemgreWkluWciO+8mumHkeWxrOaEnyAtLT4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0icmluZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMyZDdmNzIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIuNSIgc3RvcC1jb2xvcj0iIzBiNGY0NyIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMwNTMwMmIiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InJpbmcyIiB4MT0iMSIgeTE9IjEiIHgyPSIwIiB5Mj0iMCI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzNmYTU5NSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMwNjM1MmYiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9Imluc2lkZSIgY3g9Ii40NSIgY3k9Ii40IiByPSIuNyI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2ZmZjhlYyIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNmM2RjYzAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8IS0tIOeil++8muWBtOWFiSAtLT4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYm93bCIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjAiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNmZjlhN2MiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIuNDUiIHN0b3AtY29sb3I9IiNmZjdhNTkiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjZDk0ZjMwIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJib3dsU2hhZGUiIHgxPSIwIiB5MT0iMCIgeDI9IjAiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMDAwIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMDAwIiBzdG9wLW9wYWNpdHk9Ii4yMiIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0icmljZSIgY3g9Ii40IiBjeT0iLjMiIHI9Ii44Ij4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjZmZmZmZmIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2U5ZTJkNiIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ibGVhZiIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiM2ZmQxOWEiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMmY4YTVjIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJmbGFzaCIgY3g9Ii4zNSIgY3k9Ii4zNSIgcj0iLjciPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNmZmMyYWQiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjZTg2MTNmIi8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogICAgPGZpbHRlciBpZD0iZHJvcCIgeD0iLTIwJSIgeT0iLTIwJSIgd2lkdGg9IjE0MCUiIGhlaWdodD0iMTUwJSI+CiAgICAgIDxmZUdhdXNzaWFuQmx1ciBpbj0iU291cmNlQWxwaGEiIHN0ZERldmlhdGlvbj0iMTQiLz4KICAgICAgPGZlT2Zmc2V0IGR5PSIxOCIvPgogICAgICA8ZmVDb21wb25lbnRUcmFuc2Zlcj48ZmVGdW5jQSB0eXBlPSJsaW5lYXIiIHNsb3BlPSIuMzgiLz48L2ZlQ29tcG9uZW50VHJhbnNmZXI+CiAgICAgIDxmZU1lcmdlPjxmZU1lcmdlTm9kZS8+PGZlTWVyZ2VOb2RlIGluPSJTb3VyY2VHcmFwaGljIi8+PC9mZU1lcmdlPgogICAgPC9maWx0ZXI+CiAgICA8ZmlsdGVyIGlkPSJzb2Z0IiB4PSItMjAlIiB5PSItMjAlIiB3aWR0aD0iMTQwJSIgaGVpZ2h0PSIxNDAlIj4KICAgICAgPGZlR2F1c3NpYW5CbHVyIGluPSJTb3VyY2VBbHBoYSIgc3RkRGV2aWF0aW9uPSI1Ii8+CiAgICAgIDxmZU9mZnNldCBkeT0iNSIvPgogICAgICA8ZmVDb21wb25lbnRUcmFuc2Zlcj48ZmVGdW5jQSB0eXBlPSJsaW5lYXIiIHNsb3BlPSIuMyIvPjwvZmVDb21wb25lbnRUcmFuc2Zlcj4KICAgICAgPGZlTWVyZ2U+PGZlTWVyZ2VOb2RlLz48ZmVNZXJnZU5vZGUgaW49IlNvdXJjZUdyYXBoaWMiLz48L2ZlTWVyZ2U+CiAgICA8L2ZpbHRlcj4KICAgIDxjbGlwUGF0aCBpZD0ibGVucyI+PGNpcmNsZSBjeD0iMjU2IiBjeT0iMjk4IiByPSI3OCIvPjwvY2xpcFBhdGg+CiAgPC9kZWZzPgoKICA8cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjExMiIgZmlsbD0idXJsKCNiZykiLz4KICA8cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjExMiIgZmlsbD0idXJsKCNnbG93KSIvPgoKICA8IS0tIOebuOapnyAtLT4KICA8ZyBmaWx0ZXI9InVybCgjZHJvcCkiPgogICAgPHBhdGggZD0iTTE5NCAxNzIgTDIxMyAxMzMgUTIyMCAxMTggMjM3IDExOCBIMjc1IFEyOTIgMTE4IDI5OSAxMzMgTDMxOCAxNzIgWiIgZmlsbD0idXJsKCN0b3ApIi8+CiAgICA8cmVjdCB4PSI4MiIgeT0iMTY0IiB3aWR0aD0iMzQ4IiBoZWlnaHQ9IjI1NiIgcng9IjU2IiBmaWxsPSJ1cmwoI2JvZHkpIi8+CiAgPC9nPgogIDwhLS0g5qmf6Lqr6auY5YWJ6IiH5o+h5oqK57SLIC0tPgogIDxwYXRoIGQ9Ik0xMTAgMTg2IFExMjAgMTcyIDE0MCAxNzIgSDM3MiBRMzkyIDE3MiA0MDIgMTg2IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iNiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBvcGFjaXR5PSIuOSIvPgogIDxyZWN0IHg9IjExNiIgeT0iMjAyIiB3aWR0aD0iNDgiIGhlaWdodD0iMjAiIHJ4PSIxMCIgZmlsbD0iI2M3ZDZkMiIvPgogIDxyZWN0IHg9IjExNiIgeT0iMjAyIiB3aWR0aD0iNDgiIGhlaWdodD0iOCIgcng9IjQiIGZpbGw9IiNlNmVmZWMiLz4KICA8Y2lyY2xlIGN4PSIzNzYiIGN5PSIyMTQiIHI9IjE2IiBmaWxsPSJ1cmwoI2ZsYXNoKSIgZmlsdGVyPSJ1cmwoI3NvZnQpIi8+CiAgPGNpcmNsZSBjeD0iMzcxIiBjeT0iMjA5IiByPSI1IiBmaWxsPSIjZmZmIiBvcGFjaXR5PSIuOCIvPgoKICA8IS0tIOmPoemgrSAtLT4KICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSIyOTgiIHI9IjEwNCIgZmlsbD0idXJsKCNyaW5nKSIgZmlsdGVyPSJ1cmwoI3NvZnQpIi8+CiAgPGNpcmNsZSBjeD0iMjU2IiBjeT0iMjk4IiByPSI5MCIgZmlsbD0idXJsKCNyaW5nMikiLz4KICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSIyOTgiIHI9Ijc4IiBmaWxsPSJ1cmwoI2luc2lkZSkiLz4KCiAgPGcgY2xpcC1wYXRoPSJ1cmwoI2xlbnMpIj4KICAgIDwhLS0g54ax5rCjIC0tPgogICAgPHBhdGggZD0iTTIzNCAyNTYgcS0xMCAtMTIgMCAtMjQgcTEwIC0xMiAwIC0yNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjBhODkxIiBzdHJva2Utd2lkdGg9IjciIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgb3BhY2l0eT0iLjg1Ii8+CiAgICA8cGF0aCBkPSJNMjY0IDI1MCBxLTEwIC0xMiAwIC0yNCBxMTAgLTEyIDAgLTI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmMGE4OTEiIHN0cm9rZS13aWR0aD0iNyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBvcGFjaXR5PSIuODUiLz4KICAgIDwhLS0g55m96aOvIC0tPgogICAgPHBhdGggZD0iTTE5MCAzMDIgUTE5NCAyNTYgMjMyIDI2NCBRMjQ2IDI0MiAyNjggMjU4IFEzMDAgMjUwIDMyMiAzMDIgWiIgZmlsbD0idXJsKCNyaWNlKSIvPgogICAgPGNpcmNsZSBjeD0iMjIyIiBjeT0iMjgwIiByPSI0IiBmaWxsPSIjZmZmIi8+PGNpcmNsZSBjeD0iMjQ2IiBjeT0iMjcwIiByPSIzLjUiIGZpbGw9IiNmZmYiLz48Y2lyY2xlIGN4PSIyOTAiIGN5PSIyODIiIHI9IjMuNSIgZmlsbD0iI2VmZTZkOCIvPgogICAgPCEtLSDpnZLoj5wgLS0+CiAgICA8cGF0aCBkPSJNMjYyIDI3MCBxMjAgLTIyIDQ0IC04IHEtMTggMjIgLTQ0IDggWiIgZmlsbD0idXJsKCNsZWFmKSIvPgogICAgPHBhdGggZD0iTTI2NCAyNzAgcTE4IC02IDM2IC02IiBmaWxsPSJub25lIiBzdHJva2U9IiMyYTdhNTIiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgICA8IS0tIOeilyAtLT4KICAgIDxwYXRoIGQ9Ik0xODIgMzAwIEgzMzAgUTMyNiAzNTQgMjU2IDM2MiBRMTg2IDM1NCAxODIgMzAwIFoiIGZpbGw9InVybCgjYm93bCkiLz4KICAgIDxwYXRoIGQ9Ik0xODIgMzAwIEgzMzAgUTMyNiAzNTQgMjU2IDM2MiBRMTg2IDM1NCAxODIgMzAwIFoiIGZpbGw9InVybCgjYm93bFNoYWRlKSIvPgogICAgPHBhdGggZD0iTTIwMCAzMTYgUTIwNiAzNDAgMjMyIDM1MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgb3BhY2l0eT0iLjQ1Ii8+CiAgICA8cmVjdCB4PSIxNzgiIHk9IjI5NCIgd2lkdGg9IjE1NiIgaGVpZ2h0PSIxNCIgcng9IjciIGZpbGw9IiNlODYxM2YiLz4KICAgIDxyZWN0IHg9IjE4MiIgeT0iMjk0IiB3aWR0aD0iMTQ4IiBoZWlnaHQ9IjUiIHJ4PSIyLjUiIGZpbGw9IiNmZmIzOWQiLz4KICAgIDxwYXRoIGQ9Ik0yMjYgMzYxIEgyODYgTDI4MCAzNzQgSDIzMiBaIiBmaWxsPSIjYzI0NTI3Ii8+CiAgPC9nPgogIDwhLS0g6Y+h6aCt546755KD5Y+N5YWJIC0tPgogIDxjaXJjbGUgY3g9IjI1NiIgY3k9IjI5OCIgcj0iNzgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLW9wYWNpdHk9Ii4xMiIgc3Ryb2tlLXdpZHRoPSI2Ii8+CiAgPHBhdGggZD0iTTE5NiAyNjIgQTcwIDcwIDAgMCAxIDI1MCAyMjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSI3IiBzdHJva2UtbGluZWNhcD0icm91bmQiIG9wYWNpdHk9Ii40NSIvPgogIDxjaXJjbGUgY3g9IjIwMCIgY3k9IjI4MiIgcj0iNSIgZmlsbD0iI2ZmZiIgb3BhY2l0eT0iLjYiLz4KPC9zdmc+Cg==">
+<link rel="manifest" href="GROK-photo-notes.webmanifest">
+<link rel="apple-touch-icon" href="GROK-photo-notes-icon-180.png">
 <style>
 /* ========== 拍照記錄：iOS 27 風格（Liquid Glass）｜GROK 輔助・作者：帥 ==========
    依據（查證來源見檔頭註解）：
@@ -431,6 +438,88 @@ textarea{width:100%;min-height:96px;font-family:var(--mono);font-size:13px}
   .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
   .largetitle h1,.large{font-size:38px}
 }
+/* ========== v2（GROK 輔助・作者：帥）：記帳日曆、消費地圖、位置欄 ==========
+   色弱友善：今天＝「◆今天」文字、點選＝「▶」＋粗黑外框、沒紀錄＝「○ 沒有紀錄」；地圖標記＝①②③＋金額文字。顏色只當輔助。 */
+.recseg{display:grid;grid-template-columns:repeat(3,1fr);background:rgba(118,118,128,.16);border-radius:14px;padding:3px;margin:2px 0 14px}
+.recseg button{min-height:var(--target);border-radius:11px;font-weight:700;font-size:16px;color:var(--ink2)}
+.recseg button .mk{display:none}
+.recseg button[aria-pressed="true"]{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.22),inset 0 0 0 1.5px var(--ink)}
+.recseg button[aria-pressed="true"] .mk{display:inline}
+#viewRecords:not([data-mode="cal"]) #calView,#viewRecords:not([data-mode="map"]) #mapView{display:none}
+#viewRecords[data-mode="list"] #monthBar,#viewRecords:not([data-mode]) #monthBar{display:none}
+#viewRecords[data-mode="cal"] .summary,#viewRecords[data-mode="cal"] #dates,#viewRecords[data-mode="cal"] #list,
+#viewRecords[data-mode="map"] .summary,#viewRecords[data-mode="map"] #dates,#viewRecords[data-mode="map"] #list{display:none}
+.monthbar{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:6px;margin:0 0 10px}
+.monthbar h2{margin:0;text-align:center;font-size:22px;font-weight:800}
+.monthbar button{min-height:var(--target);min-width:var(--target);padding:0 8px;font-weight:700;font-size:16px;color:var(--brand)}
+.monthbar button:disabled{color:var(--muted);opacity:1}
+.mtot{background:var(--card);border-radius:var(--r-in);padding:12px 16px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:15px;color:var(--ink2)}
+.mtot b{font-size:20px;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+.calwk{display:none}
+.caldays{background:var(--card);border-radius:22px;overflow:hidden;display:grid;grid-template-columns:minmax(0,1fr)}
+.calday{display:grid;grid-template-columns:78px minmax(0,1fr) auto;gap:8px;align-items:center;text-align:left;padding:10px 14px;border-top:.5px solid var(--sep);min-height:52px;width:100%;color:var(--ink);font-size:15px}
+.caldays>.calday:first-child{border-top:0}
+.calday .dt b{display:block;font-size:16px}
+.calday .dt small{display:block;color:var(--muted);font-size:12px;font-weight:600}
+.calday .n{color:var(--ink2);font-size:14px;min-width:0}
+.calday .amt{font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+.calday.none .amt,.calday.none .n{color:var(--muted);font-weight:400}
+.calday.today .dt small{color:var(--ink)}
+.calday.sel{outline:3px solid var(--ink);outline-offset:-3px;background:var(--brand-soft)}
+.caldaylist{background:var(--bg);padding:4px 12px 12px}
+.caldaylist .dlh{font-size:14px;font-weight:700;color:var(--ink2);margin:8px 2px 2px}
+.calrec{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:10px;align-items:center;width:100%;text-align:left;background:var(--card);border-radius:14px;padding:8px;margin-top:8px;font-size:15px;color:var(--ink);min-height:var(--target)}
+.calrec img{width:44px;height:44px;border-radius:10px;object-fit:cover;background:var(--fill)}
+.calrec .t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.calrec small{display:block;color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.calrec b{font-variant-numeric:tabular-nums;white-space:nowrap}
+.note{font-size:13px;color:var(--ink2);margin:10px 4px}
+@media (min-width:768px){
+  .calwk{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));text-align:center;font-size:13px;font-weight:700;color:var(--muted);margin-bottom:6px}
+  .caldays.grid{grid-template-columns:repeat(7,minmax(0,1fr));gap:1px;background:var(--sep);border:1px solid var(--sep)}
+  .caldays.grid .calday{grid-template-columns:1fr;align-content:start;align-items:start;gap:2px;border-top:0;min-height:92px;background:var(--card);padding:8px}
+  .caldays.grid .calday.sel{background:var(--brand-soft)}
+  .caldays.grid .calday .dt b{font-size:15px}
+  .caldays.grid .calday .amt{font-size:15px}
+  .calblank{background:var(--bg)}
+  .caldays.grid + .caldaylist{border-radius:22px;margin-top:12px}
+}
+/* 地圖 */
+.mapbox{position:relative;height:300px;border-radius:22px;overflow:hidden;background:#E9E6DF;border:1px solid var(--sep)}
+.mapcanvas{position:absolute;inset:0}
+.mapcover{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:18px;text-align:center;color:var(--ink);font-size:15px;gap:4px}
+.mapcover p{margin:0}
+.mapoff{position:absolute;inset:auto 10px 10px 10px;margin:0;background:#fff;border:1.5px solid var(--ink);border-radius:14px;padding:10px 12px;font-size:15px;color:var(--ink);font-weight:700}
+.tmap{position:absolute;inset:0;overflow:hidden;touch-action:none;cursor:grab;background:#E9E6DF}
+.tmap .tiles img{position:absolute;width:256px;height:256px;max-width:none;user-select:none;-webkit-user-drag:none}
+.tmap .pins{position:absolute;inset:0;pointer-events:none}
+.mpin{position:absolute;transform:translate(-50%,-100%);background:var(--ink);color:#fff;font-weight:800;font-size:14px;border-radius:14px 14px 14px 3px;padding:3px 8px;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.45);white-space:nowrap}
+.mpin.pick{background:#fff;color:var(--ink);border-color:var(--ink)}
+.tmap .zm{position:absolute;right:8px;top:8px;display:flex;flex-direction:column;gap:6px}
+.tmap .zm button{width:var(--target);height:var(--target);border-radius:12px;background:#fff;color:var(--ink);font-size:22px;font-weight:800;border:1px solid var(--ink)}
+.tmap .attr{position:absolute;left:6px;bottom:6px;background:rgba(255,255,255,.95);color:var(--ink);font-size:11px;padding:2px 6px;border-radius:6px}
+.tmap .terr{position:absolute;left:8px;right:60px;top:8px;background:#fff;border:1.5px solid var(--ink);border-radius:10px;padding:6px 10px;font-size:13px;font-weight:700;color:var(--ink)}
+.privacy{background:var(--card);border-radius:var(--r-in);padding:10px 14px;margin:10px 0;font-size:13px;color:var(--ink);border:1.5px solid var(--ink)}
+.maplist{background:var(--card);border-radius:22px;overflow:hidden}
+.maplist:empty{display:none}
+.mrow{display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:8px;align-items:center;padding:10px 14px;border-top:.5px solid var(--sep);min-height:52px;font-size:15px}
+.mrow:first-child{border-top:0}
+.mrow .k{font-weight:800;font-size:18px;text-align:center}
+.mrow .t{min-width:0}
+.mrow small{display:block;color:var(--muted);font-size:12px;overflow-wrap:anywhere}
+.mrow a{color:var(--brand);font-weight:700;font-size:14px;text-decoration:underline;min-height:var(--target);display:flex;align-items:center;white-space:nowrap}
+.noloc{background:var(--card);border-radius:var(--r-in);padding:12px 14px;margin-top:10px;font-size:14px;color:var(--ink2)}
+.noloc:empty{display:none}
+/* 記一筆：位置欄 */
+.locbox{border:1px solid var(--sep);border-radius:18px;padding:8px 12px 10px;margin:12px 0 0;min-width:0}
+.locbox legend{font-size:14px;font-weight:700;color:var(--ink2);padding:0 6px}
+.locbox .btn{min-height:var(--target);font-size:15px;padding:8px 10px}
+.lbl2{display:block;font-size:13px;color:var(--muted);font-weight:600;margin:10px 2px 4px}
+.pickmap{position:relative;height:220px;border-radius:14px;overflow:hidden;margin-top:10px;border:1px solid var(--sep)}
+.locst{font-size:14px;margin-top:8px;color:var(--ink2)}
+.locst.err{color:var(--danger);font-weight:600}
+.linkbtn{color:var(--danger);font-weight:700;font-size:14px;min-height:var(--target);padding:0 2px;text-decoration:underline}
+#changelog b{display:block;width:auto}
 /* 類別 → 圖示 */
 .row-cat[data-cat="早餐"],.catname[data-cat="早餐"],.cat[data-c="早餐"]{--ico:var(--ico-0)}
 .row-cat[data-cat="午餐"],.catname[data-cat="午餐"],.cat[data-c="午餐"]{--ico:var(--ico-1)}
@@ -465,6 +554,12 @@ textarea{width:100%;min-height:96px;font-family:var(--mono);font-size:13px}
       <div class="sub">拍一張，就是一筆紀錄</div>
     </div>
   </div>
+  <!-- v2：紀錄分頁內的「列表｜日曆｜地圖」切換（底部分頁列不動） -->
+  <div class="recseg" id="recSeg" role="group" aria-label="紀錄顯示方式">
+    <button data-mode="list" aria-pressed="true"><span class="mk" aria-hidden="true">▶ </span>列表</button>
+    <button data-mode="cal" aria-pressed="false"><span class="mk" aria-hidden="true">▶ </span>日曆</button>
+    <button data-mode="map" aria-pressed="false"><span class="mk" aria-hidden="true">▶ </span>地圖</button>
+  </div>
   <!-- 資料庫異常提示：資料都還在，重新整理即可恢復 -->
   <div class="dbbanner hidden" id="dbBanner" role="alert">
     <div><b>手機資料庫暫時中斷</b><br>iPhone 切到相機時偶爾會發生，照片與紀錄都還在。</div>
@@ -487,6 +582,35 @@ textarea{width:100%;min-height:96px;font-family:var(--mono);font-size:13px}
 
   <!-- 每天一組的記錄清單 -->
   <section id="list" aria-label="記錄清單"></section>
+
+  <!-- v2：月份切換（日曆、地圖共用） -->
+  <div class="monthbar" id="monthBar">
+    <button id="mPrev" aria-label="上一個月">◀ 上個月</button>
+    <h2 id="mTitle">—</h2>
+    <button id="mNext" aria-label="下一個月">下個月 ▶</button>
+  </div>
+  <!-- v2：記帳日曆（手機一天一列；768px 以上 7 欄月曆） -->
+  <section id="calView" aria-label="記帳日曆">
+    <div class="mtot"><span id="calMonthSub">本月合計</span><b id="calMonthTotal" data-value="0">NT$ 0</b></div>
+    <div class="calwk" id="calWk" aria-hidden="true"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>
+    <div class="caldays" id="calDays" role="list"></div>
+    <div class="caldaylist" id="calDayList" aria-live="polite"></div>
+    <p class="note" id="calNote">◆＝今天　▶ 粗外框＝目前點選的日子　○＝那天沒有紀錄。只算有填金額的紀錄。</p>
+  </section>
+  <!-- v2：消費地圖（預設不連網；按「顯示地圖」才向 OpenStreetMap 載入地圖圖片） -->
+  <section id="mapView" aria-label="消費地圖">
+    <div class="mapbox" id="mapBox" aria-label="消費地圖">
+      <div class="mapcanvas" id="mapCanvas"></div><!-- 工程師複查 R2：地圖只畫在這裡，重畫時只清這一層 -->
+      <div class="mapcover" id="mapCover">
+        <p id="mapCoverT">地圖要連網才看得到，按下去會向 OpenStreetMap 下載這一區的地圖圖片。</p>
+        <button class="btn primary" id="mapShow">顯示地圖</button>
+      </div>
+      <p class="mapoff hidden" id="mapOffline" role="status">▲ 離線看不到地圖，下面清單照常可看。</p>
+    </div>
+    <div class="privacy">▲ 位置只存在這支手機。看地圖時會把「地圖範圍」送給 OpenStreetMap；點「開地圖 ↗」會送出那一筆的位置。</div>
+    <div class="maplist" id="mapList" role="list"></div>
+    <div class="noloc" id="mapNoLoc"></div>
+  </section>
 </main>
 
 <!-- ========== 統計分頁（只讀取現有資料） ========== -->
@@ -531,8 +655,8 @@ textarea{width:100%;min-height:96px;font-family:var(--mono);font-size:13px}
 
 <footer class="site-footer">
   拍照記錄 ｜ GROK 輔助・作者：帥<br>
-  製作日期：2026-11-24 ｜ 修改日期：2026-11-24 22:51<br>
-  照片只存在這支手機，不上傳、不取定位
+  製作日期：2026-11-24 ｜ 修改日期：2026-11-25 00:07<br>
+  照片和位置只存在這支手機，不上傳；按「取得目前位置」才會定位
 </footer>
 </div>
 
@@ -630,7 +754,7 @@ textarea{width:100%;min-height:96px;font-family:var(--mono);font-size:13px}
   </div>
   <div class="msg" id="expMsg"></div>
   <p class="hint mt" id="expLast"></p>
-  <div class="sheet-footer">拍照記錄 ｜ GROK 輔助・作者：帥 ｜ 製作日期：2026-11-24 ｜ 修改日期：2026-11-24 22:51</div>
+  <div class="sheet-footer">拍照記錄 ｜ GROK 輔助・作者：帥 ｜ 製作日期：2026-11-24 ｜ 修改日期：2026-11-25 00:07</div>
 </div>
 
 <!-- ========== 記帳面板（金額、類別、筆記） ========== -->
@@ -640,9 +764,24 @@ textarea{width:100%;min-height:96px;font-family:var(--mono);font-size:13px}
   <div class="amtbox"><span>$</span><input id="enAmt" type="text" inputmode="decimal" placeholder="0" autocomplete="off" aria-label="金額"></div>
   <div class="cats" id="enCats" aria-label="類別"></div>
   <textarea id="enNote" placeholder="筆記（選填）：例如 店名、雞腿便當、去冰微糖" aria-label="筆記"></textarea>
+  <!-- v2：位置（選填）。按「取得目前位置」才會問定位權限 -->
+  <fieldset class="locbox" id="enLoc">
+    <legend>位置（選填）</legend>
+    <div class="two"><button class="btn" id="enLocGps" type="button">◎ 取得目前位置</button><button class="btn" id="enLocPick" type="button">在地圖上點選</button></div>
+    <label class="lbl2" for="enLocLabel">地點名稱（60 字內）</label>
+    <input id="enLocLabel" type="text" maxlength="200" placeholder="例如：全聯 中山店" autocomplete="off">
+    <!-- 座標輸入欄（帥 2026-11-25 決定保留）：之後要拿掉，只要刪掉這個 div，程式會自動略過 -->
+    <div id="enLocCoordRow">
+      <label class="lbl2" for="enLocCoord">座標（選填，緯度, 經度）</label>
+      <input id="enLocCoord" type="text" inputmode="decimal" placeholder="例如：25.0478, 121.5170" autocomplete="off">
+    </div>
+    <div class="pickmap hidden" id="enLocMap" aria-label="點一下地圖選位置"></div>
+    <div class="locst" id="enLocStatus" role="status">沒有位置（不存也可以）</div>
+    <button class="linkbtn" id="enLocClear" type="button">清除位置</button>
+  </fieldset>
   <div class="msg" id="enMsg"></div>
   <div class="two mt"><button class="btn" id="enSkip">略過</button><button class="btn primary" id="enSave">儲存</button></div>
-  <div class="sheet-footer">拍照記錄 ｜ GROK 輔助・作者：帥 ｜ 製作日期：2026-11-24 ｜ 修改日期：2026-11-24 22:51</div>
+  <div class="sheet-footer">拍照記錄 ｜ GROK 輔助・作者：帥 ｜ 製作日期：2026-11-24 ｜ 修改日期：2026-11-25 00:07</div>
 </div>
 
 <!-- ========== 期間明細面板（原本的統計面板） ========== -->
@@ -661,7 +800,7 @@ textarea{width:100%;min-height:96px;font-family:var(--mono);font-size:13px}
   <div class="sec">明細</div>
   <div id="stList"></div>
   <button class="btn" id="stCsv"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>匯出這段期間（CSV，可用 Excel 開）</button>
-  <div class="sheet-footer">拍照記錄 ｜ GROK 輔助・作者：帥 ｜ 製作日期：2026-11-24 ｜ 修改日期：2026-11-24 22:51</div>
+  <div class="sheet-footer">拍照記錄 ｜ GROK 輔助・作者：帥 ｜ 製作日期：2026-11-24 ｜ 修改日期：2026-11-25 00:07</div>
 </div>
 
 <!-- ========== 設定面板 ========== -->
@@ -721,10 +860,16 @@ textarea{width:100%;min-height:96px;font-family:var(--mono);font-size:13px}
     <div><b>作者</b>帥</div>
     <div><b>標示</b>GROK 輔助・作者：帥</div>
     <div><b>製作日期</b>2026-11-24</div>
-    <div><b>修改日期</b>2026-11-24 22:51</div>
-    <div><b>資料存放</b>只存在這支手機，不上傳、不取定位</div>
+    <div><b>修改日期</b>2026-11-25 00:07</div>
+    <div><b>資料存放</b>照片和位置只存在這支手機，不上傳；按「取得目前位置」才會定位；看地圖時才會連 OpenStreetMap</div>
   </div>
-  <div class="sheet-footer">拍照記錄 ｜ GROK 輔助・作者：帥 ｜ 製作日期：2026-11-24 ｜ 修改日期：2026-11-24 22:51</div>
+  <div class="sec">更新紀錄</div>
+  <div class="about" id="changelog">
+    <div><b>2026-11-25 00:07</b>工程師複查修正：手機日曆換月後空白、地圖換月／斷網後空白、座標提示寫出合法範圍；定位沒回應會逾時、月份按鈕改「◀ 上個月／下個月 ▶」、離線快取忽略 ?v= 參數</div>
+    <div><b>2026-11-24 23:33</b>新增記帳日曆、消費地圖（位置選填）、離線使用、主畫面圖示</div>
+    <div><b>2026-11-24 22:51</b>iOS 27 風格、統計分頁、依日期分組、金額與未來日期防呆</div>
+  </div>
+  <div class="sheet-footer">拍照記錄 ｜ GROK 輔助・作者：帥 ｜ 製作日期：2026-11-24 ｜ 修改日期：2026-11-25 00:07</div>
 </div>
 
 <!-- ========== 確認對話框、提示、處理中 ========== -->
@@ -1156,6 +1301,20 @@ function askChoice(msg, yes, no){ return new Promise(res=>{ const yb=$('dYes'), 
   const done=v=>{ $('dialog').classList.remove('on'); yb.onclick=nb.onclick=null; nb.textContent=oldNo; res(v); };
   yb.onclick=()=>done(true); nb.onclick=()=>done(false); }); }
 
+/* v2：位置欄位 loc（選填）整理：{lat,lng,acc,src:'gps'|'map'|'manual',label,at}；不合法的座標丟掉，名稱最多 60 字；什麼都沒有就回傳 null */
+function cleanLoc(o){ if(!o || typeof o!=='object') return null;
+  const num=v=>typeof v==='number' && isFinite(v);
+  let lat=num(o.lat)?o.lat:null, lng=num(o.lng)?o.lng:null;
+  if(lat===null || lng===null || lat<-90 || lat>90 || lng<-180 || lng>180){ lat=null; lng=null; }
+  const label = typeof o.label==='string' ? o.label.trim().slice(0,60) : '';
+  if(lat===null && !label) return null;
+  const out={ src: ['gps','map','manual'].includes(o.src) ? o.src : 'manual' };
+  if(lat!==null){ out.lat=Math.round(lat*1e6)/1e6; out.lng=Math.round(lng*1e6)/1e6; }
+  if(num(o.acc) && o.acc>0 && o.acc<1e7) out.acc=Math.round(o.acc);
+  if(label) out.label=label;
+  if(num(o.at)) out.at=o.at;
+  return out; }
+const locText = l => !l ? '' : [l.label||'', (typeof l.lat==='number') ? `${l.lat}, ${l.lng}` : ''].filter(Boolean).join(' ');
 /* 日期文字（依設定格式） */
 function dateText(ts, fmt){ const d=new Date(ts), w=WD[d.getDay()];
   if(fmt==='roc') return `${d.getFullYear()-1911}/${pad(d.getMonth()+1)}/${pad(d.getDate())}（${w}）`;
@@ -1272,10 +1431,11 @@ const DB = (()=>{
       const tiny = (old.tiny && old.v===rec._v) ? old.tiny : await tinyOf(rec.thumb||rec.full);
       all[rec.id]={ts:rec.ts,backfill:!!rec.backfill,deleted:!!rec.deleted,deletedAt:rec.deletedAt||0,savedAt:rec.savedAt||0,edited:!!rec.orig,
         amount:(typeof rec.amount==='number'?rec.amount:null),cat:rec.cat||'',note:rec.note||'',tiny,v:rec._v};
+      { const L=cleanLoc(rec.loc); if(L) all[rec.id].loc=L; }
       localStorage.setItem(META, JSON.stringify(all)); return true; }catch(e){ diag('摘要寫入失敗：'+(e&&e.name)); return false; } }
   function metaDel(id){ try{ const all=metaAll(); delete all[id]; localStorage.setItem(META, JSON.stringify(all)); }catch(e){} }
   function metaToRec(id,m){ const b=m.tiny?dataURLToBlob(m.tiny):new Blob([],{type:'image/jpeg'});
-    return {id,ts:m.ts,backfill:m.backfill,deleted:m.deleted,deletedAt:m.deletedAt,savedAt:m.savedAt,amount:m.amount,cat:m.cat,note:m.note,full:b,thumb:b,_lowres:true}; }
+    return {id,ts:m.ts,backfill:m.backfill,deleted:m.deleted,deletedAt:m.deletedAt,savedAt:m.savedAt,amount:m.amount,cat:m.cat,note:m.note,...(cleanLoc(m.loc)?{loc:cleanLoc(m.loc)}:{}),full:b,thumb:b,_lowres:true}; }
 
   /* 修復：資料庫少掉的照片，從鏡像補回去 */
   async function heal(dbIds){
@@ -1351,14 +1511,14 @@ async function loadAll(){
   // 回收桶超過 30 天自動清除
   const limit = Date.now()-30*864e5;
   for(const r of recs){ if(r.deleted && r.deletedAt<limit){ await DB.del(r.id); r._gone=true; } }
-  photos = recs.filter(r=>!r._gone).map(r=>({id:r.id,ts:r.ts,backfill:!!r.backfill,deleted:!!r.deleted,deletedAt:r.deletedAt||0,savedAt:r.savedAt||0,edited:!!r.orig,amount:(typeof r.amount==='number'?r.amount:null),cat:r.cat||'',note:r.note||'',thumbUrl:URL.createObjectURL(r.thumb)}))
+  photos = recs.filter(r=>!r._gone).map(r=>({id:r.id,ts:r.ts,backfill:!!r.backfill,deleted:!!r.deleted,deletedAt:r.deletedAt||0,savedAt:r.savedAt||0,edited:!!r.orig,amount:(typeof r.amount==='number'?r.amount:null),cat:r.cat||'',note:r.note||'',loc:cleanLoc(r.loc),thumbUrl:URL.createObjectURL(r.thumb)}))
                .sort((a,b)=>a.ts-b.ts);
   return true;
 }
 const live = () => photos.filter(p=>!p.deleted);
 /* 把一筆紀錄加進畫面清單（資料庫暫時讀不到時使用） */
 function addToPhotos(r){ if(photos.some(p=>p.id===r.id)) return;
-  photos.push({id:r.id,ts:r.ts,backfill:!!r.backfill,deleted:!!r.deleted,deletedAt:r.deletedAt||0,savedAt:r.savedAt||0,edited:!!r.orig,amount:(typeof r.amount==='number'?r.amount:null),cat:r.cat||'',note:r.note||'',thumbUrl:URL.createObjectURL(r.thumb)});
+  photos.push({id:r.id,ts:r.ts,backfill:!!r.backfill,deleted:!!r.deleted,deletedAt:r.deletedAt||0,savedAt:r.savedAt||0,edited:!!r.orig,amount:(typeof r.amount==='number'?r.amount:null),cat:r.cat||'',note:r.note||'',loc:cleanLoc(r.loc),thumbUrl:URL.createObjectURL(r.thumb)});
   photos.sort((a,b)=>a.ts-b.ts); }
 
 /* =========================================================
@@ -1697,15 +1857,17 @@ function openEntry(id, isNew){
   $('enAmt').value = p.amount!==null ? String(p.amount) : '';
   enCat = p.cat || (isNew ? guessCat(p.ts) : ''); syncCats();
   $('enNote').value=p.note||''; $('enMsg').textContent='';
+  if(typeof v2OpenLoc==='function') v2OpenLoc(p);   /* v2：帶入位置 */
   $('enSkip').textContent = isNew ? '略過' : (p.amount!==null||p.note||p.cat ? '清除這筆' : '取消');
   openSheet('sheetEntry');
   setTimeout(()=>{ try{ $('enAmt').focus(); }catch(e){} },280);
 }
-async function writeEntry(amount, cat, note){
+async function writeEntry(amount, cat, note, loc){
   const rec=await DB.get(enId); if(!rec) return;
   rec.amount=amount; rec.cat=cat; rec.note=note;
+  if(loc!==undefined){ if(loc) rec.loc=loc; else delete rec.loc; }
   try{ await DB.put(rec); }catch(e){ toast(e.message,3500); }
-  const p=photos.find(x=>x.id===enId); if(p){ p.amount=amount; p.cat=cat; p.note=note; }
+  const p=photos.find(x=>x.id===enId); if(p){ p.amount=amount; p.cat=cat; p.note=note; if(loc!==undefined) p.loc=cleanLoc(loc); }
   closeSheets(); render(); if($('viewer').classList.contains('on')) showV();
 }
 $('enSave').onclick=async()=>{
@@ -1715,8 +1877,11 @@ $('enSave').onclick=async()=>{
     /* 工程師複查 A：說明合法範圍 0～9,999,999；負數、超過上限分開提示（文字自帶 ▲，has-sym 讓 CSS 不再重複加） */
     m.textContent = !isFinite(amount) ? '▲ 金額請輸入數字，例如 85（範圍 0～9,999,999）' : amount<0 ? '▲ 金額不能是負數，需在 0～9,999,999 之間' : '▲ 金額需在 0～9,999,999 之間';
     m.className='msg err has-sym'; return; } amount=Math.round(amount*100)/100; }
+  /* v2：位置欄防呆（名稱 60 字內、緯度 -90～90、經度 -180～180） */
+  const LR = (typeof v2ReadLoc==='function') ? v2ReadLoc() : { ok:true, loc:undefined };
+  if(!LR.ok){ const m=$('enMsg'); m.textContent=LR.msg; m.className='msg err has-sym'; return; }
   const note=$('enNote').value.trim().slice(0,500);
-  await writeEntry(amount, amount===null && !note ? (enNew?'':enCat) : enCat, note);
+  await writeEntry(amount, amount===null && !note ? (enNew?'':enCat) : enCat, note, LR.loc);
   toast(amount!==null ? `已記帳 ${money(amount)}` : '已儲存筆記');
 };
 $('enSkip').onclick=async()=>{
@@ -1788,8 +1953,8 @@ $('stPeriod').addEventListener('click',e=>{ const b=e.target.closest('button'); 
 $('btnStats').onclick=()=>{ renderStats(); openSheet('sheetStats'); };
 $('stCsv').onclick=async()=>{
   const L=statItems(); const esc=v=>`"${String(v).replace(/"/g,'""')}"`;
-  const rows=[['日期','時間','類別','金額','筆記'], ...L.map(p=>[dayKey(p.ts),hm(p.ts),p.cat,p.amount,p.note])];
-  rows.push(['','','合計',sumAmt(L),'']);
+  const rows=[['日期','時間','類別','金額','筆記','位置'], ...L.map(p=>[dayKey(p.ts),hm(p.ts),p.cat,p.amount,p.note,locText(p.loc)])];
+  rows.push(['','','合計',sumAmt(L),'','']);
   const csv='﻿'+rows.map(r=>r.map(esc).join(',')).join('\r\n');   // 加 BOM，Excel 開中文不亂碼
   const label={day:dayKey(Date.now()),week:'本週_'+dayKey(periodRange('week')[0]),month:dayKey(Date.now()).slice(0,7),all:'全部'}[stPeriod];
   await saveFile(`拍照記錄_花費_${label}.csv`, csv, 'text/csv');
@@ -1941,11 +2106,11 @@ function renderTrash(){
 
 /* =========================================================
    11. 備份（JSON 匯出）與匯入
-   格式：{ app:"mealcam", version:1, exportedAt, settings, photos:[{id,ts,backfill,deleted,deletedAt,savedAt,amount,cat,note,image,origImage?(加字前原圖):"data:image/jpeg;base64,..."}] }
+   格式：{ app:"mealcam", version:1, exportedAt, settings, photos:[{id,ts,backfill,deleted,deletedAt,savedAt,amount,cat,note,loc?(v2 選填位置),image,origImage?(加字前原圖):"data:image/jpeg;base64,..."}] }
    ========================================================= */
 async function buildBackup(){
   const recs=await DB.allMerged(); const out=[];
-  for(const r of recs) out.push({id:r.id,ts:r.ts,backfill:!!r.backfill,deleted:!!r.deleted,deletedAt:r.deletedAt||0,savedAt:r.savedAt||0,amount:(typeof r.amount==='number'?r.amount:null),cat:r.cat||'',note:r.note||'',image:await blobToDataURL(r.full),origImage:r.orig?await blobToDataURL(r.orig):undefined});
+  for(const r of recs) out.push({id:r.id,ts:r.ts,backfill:!!r.backfill,deleted:!!r.deleted,deletedAt:r.deletedAt||0,savedAt:r.savedAt||0,amount:(typeof r.amount==='number'?r.amount:null),cat:r.cat||'',note:r.note||'',loc:cleanLoc(r.loc)||undefined,image:await blobToDataURL(r.full),origImage:r.orig?await blobToDataURL(r.orig):undefined});
   return JSON.stringify({app:'mealcam',version:1,exportedAt:new Date().toISOString(),settings:S,photos:out});
 }
 function bkMsg(t,ok){ ['bkMsg','expMsg'].forEach(id=>{ const m=$(id); if(m){ m.textContent=t; m.className='msg '+(ok?'ok':'err'); } }); }
@@ -1971,7 +2136,7 @@ async function importJson(text){
       const full=dataURLToBlob(p.image); const img=await loadImage(full);
       const T=360, tk=T/Math.min(img.naturalWidth,img.naturalHeight), tc=document.createElement('canvas');
       tc.width=Math.round(img.naturalWidth*tk); tc.height=Math.round(img.naturalHeight*tk); tc.getContext('2d').drawImage(img,0,0,tc.width,tc.height);
-      await DB.put({id:p.id,ts:p.ts,backfill:!!p.backfill,deleted:!!p.deleted,deletedAt:p.deletedAt||0,savedAt:p.savedAt||0,amount:(typeof p.amount==='number'&&isFinite(p.amount)?p.amount:null),cat:typeof p.cat==='string'?p.cat.slice(0,20):'',note:typeof p.note==='string'?p.note.slice(0,500):'',full,orig:(typeof p.origImage==='string'&&p.origImage.startsWith('data:image/'))?dataURLToBlob(p.origImage):undefined,thumb:await toBlob(tc,0.75)}); added++; }
+      await DB.put({id:p.id,ts:p.ts,backfill:!!p.backfill,deleted:!!p.deleted,deletedAt:p.deletedAt||0,savedAt:p.savedAt||0,amount:(typeof p.amount==='number'&&isFinite(p.amount)?p.amount:null),cat:typeof p.cat==='string'?p.cat.slice(0,20):'',note:typeof p.note==='string'?p.note.slice(0,500):'',...(cleanLoc(p.loc)?{loc:cleanLoc(p.loc)}:{}),full,orig:(typeof p.origImage==='string'&&p.origImage.startsWith('data:image/'))?dataURLToBlob(p.origImage):undefined,thumb:await toBlob(tc,0.75)}); added++; }
     if(data.settings && typeof data.settings==='object'){ S={...DEFAULTS,...S,...data.settings}; saveSettings(); }
   }catch(e){ busy(false); bkMsg('匯入失敗：'+(e.message||'照片無法讀取'),false); return; }
   busy(false); await loadAll(); render(); syncSettingsUI(); renderTrash();
@@ -1999,7 +2164,7 @@ $('imFile').onchange=async e=>{ const f=e.target.files[0]; if(!f) return; import
   setInterval(()=>{ const t=dayKey(Date.now()); if(t!==render._today){ const wasToday=render._today===selDay; render._today=t; if(wasToday) selDay=t; render(); } }, 60000);
   render._today=dayKey(Date.now());
   // 正式 PWA 空間才註冊 service worker（不支援的環境略過，不影響使用）
-  try{ if('serviceWorker' in navigator && window.top===window && location.protocol==='https:') navigator.serviceWorker.register('./service-worker.js').catch(()=>{}); }catch(e){}
+  try{ if('serviceWorker' in navigator && window.top===window && window.isSecureContext && location.protocol!=='file:') navigator.serviceWorker.register('./GROK-photo-notes-sw.js').catch(()=>{}); }catch(e){}
 })();
 </script>
 <script>
@@ -2140,6 +2305,280 @@ $('imFile').onchange=async e=>{ const f=e.target.files[0]; if(!f) return; import
       ? `30 天合計 ${nt(total)}，有花費 ${spent.length} 天；花最多是 ${top.d.getMonth()+1}/${top.d.getDate()}（${nt(top.v)}）。`
       : '最近 30 天還沒有記帳。';
   }
+})();
+</script>
+<script>
+/* =========================================================
+   v2（GROK 輔助・作者：帥）：記帳日曆、消費地圖、記一筆的位置欄
+   - 日曆、地圖只「讀取」現有紀錄（live()）；位置只透過主程式 writeEntry() 寫進同一筆紀錄的選填欄位 loc
+   - 不新增任何 localStorage key、資料庫、資料表；舊紀錄沒有 loc 一律照常顯示
+   - 對外連線只有：按「顯示地圖」／「在地圖上點選」後向 tile.openstreetmap.org 下載地圖圖片；「開地圖 ↗」連結開新分頁
+   ========================================================= */
+(()=>{
+  const el = id => document.getElementById(id);
+  const nt = n => 'NT$ ' + Number(n||0).toLocaleString('zh-TW',{maximumFractionDigits:2});
+  const r2 = n => Math.round(n*100)/100;
+  const r6 = n => Math.round(n*1e6)/1e6;
+  const NOS = '①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳';
+  const NO = i => NOS[i] || `(${i+1})`;
+  const hasAmt = p => typeof p.amount==='number' && isFinite(p.amount);
+  const hasXY = l => !!l && typeof l.lat==='number' && typeof l.lng==='number';
+  const SRC = { gps:'GPS 取得', map:'地圖點選', manual:'手動填' };
+  const TILE = 'https://tile.openstreetmap.org/';
+  const osmLink = l => `https://www.openstreetmap.org/?mlat=${l.lat}&mlon=${l.lng}#map=17/${l.lat}/${l.lng}`;
+  const view = el('viewRecords');
+  const DL = el('calDayList');   /* 工程師複查 R1：固定參照（手機時會被搬進 #calDays，重畫前先搬出來） */
+  const coordEl = el('enLocCoord');   /* 座標輸入欄（可拿掉；沒有這欄時一律當空白） */
+  const setCoord = v => { if(coordEl) coordEl.value = v; };
+  const wideMQ = matchMedia('(min-width:768px)');
+  let mode = 'list', calSel = null, mapOn = false;
+  const curYM = () => { const d=new Date(); return { y:d.getFullYear(), m:d.getMonth() }; };
+  const idxOf = o => o.y*12 + o.m;
+  let ym = curYM();
+  view.dataset.mode = 'list';
+
+  /* ---------- 列表｜日曆｜地圖 切換 ---------- */
+  function setMode(m){
+    mode = m; view.dataset.mode = m;
+    el('recSeg').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.mode===m)));
+    rerender();
+  }
+  el('recSeg').addEventListener('click', e=>{ const b=e.target.closest('button'); if(b) setMode(b.dataset.mode); });
+  function rerender(){ if(mode==='cal') renderCal(); else if(mode==='map') renderMap(); }
+  /* 主程式重畫清單（新增、刪除、匯入）時跟著更新 */
+  let queued=false;
+  new MutationObserver(()=>{ if(mode==='list' || queued) return; queued=true; requestAnimationFrame(()=>{ queued=false; rerender(); }); }).observe(el('list'), { childList:true });
+  wideMQ.addEventListener('change', ()=>{ if(mode==='cal') renderCal(); });
+  addEventListener('online', ()=>{ if(mode==='map') renderMap(); });
+  addEventListener('offline', ()=>{ if(mode==='map') renderMap(); });
+
+  /* ---------- 月份切換（防呆：不能超過本月、不能早於 2000 年） ---------- */
+  function moveMonth(k){ const i=idxOf(ym)+k; if(i>idxOf(curYM()) || i<2000*12) return; ym={ y:Math.floor(i/12), m:i%12 }; calSel=null; rerender(); }
+  el('mPrev').onclick = ()=>moveMonth(-1);
+  el('mNext').onclick = ()=>moveMonth(1);
+  function renderMonthBar(){
+    if(idxOf(ym)>idxOf(curYM())) ym=curYM();
+    el('mTitle').textContent = `${ym.y} 年 ${ym.m+1} 月`;
+    const p=new Date(ym.y, ym.m-1, 1), n=new Date(ym.y, ym.m+1, 1);
+    /* 觀察項 O2：按鈕固定寫「◀ 上個月」「下個月 ▶」，月份只寫在報讀文字裡 */
+    const atCur = idxOf(ym)>=idxOf(curYM());
+    el('mPrev').setAttribute('aria-label', `上個月（${p.getFullYear()} 年 ${p.getMonth()+1} 月）`);
+    el('mNext').disabled = atCur; el('mNext').setAttribute('aria-label', atCur ? '下個月（已經是這個月，不能再往後）' : `下個月（${n.getFullYear()} 年 ${n.getMonth()+1} 月）`);
+    el('mPrev').disabled = idxOf(ym)<=2000*12;
+  }
+  function monthItems(){ const s=new Date(ym.y,ym.m,1).getTime(), e=new Date(ym.y,ym.m+1,1).getTime();
+    return live().filter(p=>p.ts>=s && p.ts<e).sort((a,b)=>a.ts-b.ts); }
+  const recText = p => [p.cat, p.note].filter(Boolean).join('・') || '（無筆記）';
+
+  /* ---------- 記帳日曆 ---------- */
+  function renderCal(){
+    renderMonthBar();
+    const items = monthItems(), by = {};
+    items.forEach(p=>{ const k=dayKey(p.ts); const g=by[k]||(by[k]={n:0,t:0,a:0,list:[]}); g.n++; g.list.push(p); if(hasAmt(p)){ g.t=r2(g.t+p.amount); g.a++; } });
+    const withAmt = items.filter(hasAmt), mt = r2(withAmt.reduce((s,p)=>s+p.amount,0));
+    const tot = el('calMonthTotal'); tot.dataset.value = String(mt); tot.textContent = nt(mt);
+    el('calMonthSub').textContent = `${ym.m+1} 月合計（${withAmt.length} 筆有金額）`;
+    const wide = wideMQ.matches, box = el('calDays'), dl = DL;
+    box.after(dl);   /* R1：先把當天清單搬出來，清空日曆時才不會被一起刪掉 */
+    box.textContent = ''; box.classList.toggle('grid', wide);
+    const today = dayKey(Date.now()), last = new Date(ym.y, ym.m+1, 0).getDate();
+    const prefix = `${ym.y}-${pad(ym.m+1)}-`;
+    if(calSel && !calSel.startsWith(prefix)) calSel = null;
+    let days = []; for(let d=1; d<=last; d++) days.push(d);
+    if(!wide){ /* 手機：一天一列，最新的在上面；本月只列到今天 */
+      if(idxOf(ym)===idxOf(curYM())) days = days.filter(d=>d<=new Date().getDate());
+      days.reverse();
+    } else { const lead = new Date(ym.y, ym.m, 1).getDay();
+      for(let i=0;i<lead;i++){ const b=document.createElement('div'); b.className='calblank'; b.setAttribute('aria-hidden','true'); box.appendChild(b); } }
+    dl.hidden = true;
+    for(const d of days){
+      const k = prefix+pad(d), g = by[k], dt = new Date(ym.y, ym.m, d), isSel = k===calSel, isToday = k===today;
+      const future = dt.getTime() > Date.now();
+      const b = document.createElement('button');
+      b.className = 'calday' + (g?'':' none') + (isToday?' today':'') + (isSel?' sel':'');
+      b.dataset.day = k; b.dataset.total = String(g ? g.t : 0); b.dataset.count = String(g ? g.n : 0);
+      b.setAttribute('role','listitem'); b.setAttribute('aria-pressed', String(isSel));
+      b.innerHTML = '<span class="dt"><b></b><small></small></span><span class="n"></span><span class="amt"></span>';
+      b.querySelector('.dt b').textContent = (isSel ? '▶ ' : '') + `${ym.m+1}/${d}`;
+      b.querySelector('.dt small').textContent = `週${WD[dt.getDay()]}` + (isToday ? ' ◆今天' : '');
+      b.querySelector('.n').textContent = g ? `● ${g.n} 筆` : (future ? '' : '○ 沒有紀錄');
+      b.querySelector('.amt').textContent = g ? (g.a ? nt(g.t) : '未填金額') : '—';
+      b.setAttribute('aria-label', `${ym.m+1}月${d}日 週${WD[dt.getDay()]}${isToday?'（今天）':''}，${g ? `${g.n} 筆，合計 ${nt(g.t)}` : '沒有紀錄'}${isSel?'，已選取':''}`);
+      b.onclick = ()=>{ calSel = (calSel===k) ? null : k; renderCal(); };
+      box.appendChild(b);
+      if(isSel && !wide){ box.appendChild(dl); fillDayList(g ? g.list : []); }
+    }
+    if(wide){ const cells=box.children.length; for(let i=cells%7; i && i<7; i++){ const e=document.createElement('div'); e.className='calblank'; e.setAttribute('aria-hidden','true'); box.appendChild(e); }
+      box.after(dl); if(calSel) fillDayList(by[calSel] ? by[calSel].list : []); }
+  }
+  function fillDayList(list){
+    const dl = DL; dl.textContent = ''; dl.hidden = false;
+    const h = document.createElement('div'); h.className='dlh';
+    h.textContent = `${dateText(keyToDate(calSel).getTime(), S.date)} 的紀錄（${list.length} 筆）`; dl.appendChild(h);
+    if(!list.length){ const p=document.createElement('p'); p.className='note'; p.textContent='這天沒有紀錄。'; dl.appendChild(p); return; }
+    list.forEach(p=>{
+      const r = document.createElement('button'); r.className='calrec'; r.dataset.id = p.id;
+      const img = document.createElement('img'); img.alt=''; img.src = p.thumbUrl;
+      const t = document.createElement('span'); t.className='t'; t.textContent = `${hm(p.ts)} ${recText(p)}`;
+      if(p.loc){ const s=document.createElement('small'); s.textContent = '◎ ' + (p.loc.label || (hasXY(p.loc) ? '有座標' : '')); t.appendChild(s); }
+      const a = document.createElement('b'); a.textContent = hasAmt(p) ? nt(p.amount) : '—';
+      r.append(img, t, a);
+      r.onclick = ()=>{ selDay = dayKey(p.ts); render(); openViewer(p.id); };
+      dl.appendChild(r);
+    });
+  }
+
+  /* ---------- 地圖圖片（OpenStreetMap 圖磚，不用外部函式庫） ---------- */
+  const lon2x = (lng,z) => (lng+180)/360*256*2**z;
+  const lat2y = (lat,z) => { const r=lat*Math.PI/180; return (1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*256*2**z; };
+  const x2lon = (x,z) => x/(256*2**z)*360-180;
+  const y2lat = (y,z) => { const n=Math.PI-2*Math.PI*y/(256*2**z); return 180/Math.PI*Math.atan(0.5*(Math.exp(n)-Math.exp(-n))); };
+  function makeMap(host, o){
+    host.textContent=''; const root=document.createElement('div'); root.className='tmap'; host.appendChild(root);
+    const tiles=document.createElement('div'); tiles.className='tiles';
+    const pins=document.createElement('div'); pins.className='pins';
+    const zm=document.createElement('div'); zm.className='zm';
+    const zin=document.createElement('button'); zin.type='button'; zin.textContent='＋'; zin.setAttribute('aria-label','放大地圖');
+    const zout=document.createElement('button'); zout.type='button'; zout.textContent='－'; zout.setAttribute('aria-label','縮小地圖');
+    zm.append(zin, zout);
+    const attr=document.createElement('a'); attr.className='attr'; attr.href='https://www.openstreetmap.org/copyright'; attr.target='_blank'; attr.rel='noopener noreferrer'; attr.textContent='© OpenStreetMap';
+    const terr=document.createElement('div'); terr.className='terr'; terr.hidden=true; terr.textContent='▲ 地圖圖片載不到（可能沒網路），下面清單照常可看。';
+    root.append(tiles, pins, zm, attr, terr);
+    let markers = o.markers || [], z = o.zoom, W = root.clientWidth || 343, H = root.clientHeight || 300;
+    if(o.fit && markers.length){
+      const xs=markers.map(m=>m.lng), ys=markers.map(m=>m.lat);
+      for(z=17; z>2; z--){ const w=lon2x(Math.max(...xs),z)-lon2x(Math.min(...xs),z), h=lat2y(Math.min(...ys),z)-lat2y(Math.max(...ys),z); if(w<=W-90 && h<=H-90) break; }
+    }
+    let cx, cy;
+    const center = (lat,lng)=>{ cx=lon2x(lng,z); cy=lat2y(lat,z); };
+    if(o.fit && markers.length){ const xs=markers.map(m=>lon2x(m.lng,z)), ys=markers.map(m=>lat2y(m.lat,z)); cx=(Math.min(...xs)+Math.max(...xs))/2; cy=(Math.min(...ys)+Math.max(...ys))/2 + 14; }
+    else center(o.center.lat, o.center.lng);
+    let raf=0;
+    function draw(){
+      raf=0; W=root.clientWidth||W; H=root.clientHeight||H; const n=2**z, x0=cx-W/2, y0=cy-H/2;
+      const want=new Set();
+      for(let ty=Math.floor(y0/256); ty<=Math.floor((y0+H)/256); ty++){ if(ty<0||ty>=n) continue;
+        for(let tx=Math.floor(x0/256); tx<=Math.floor((x0+W)/256); tx++){ want.add(`${z}/${((tx%n)+n)%n}/${ty}|${tx}|${ty}`); } }
+      [...tiles.children].forEach(im=>{ if(!want.has(im.dataset.k)) im.remove(); else want.delete(im.dataset.k); });
+      want.forEach(k=>{ const [p]=k.split('|'); const im=document.createElement('img'); im.alt=''; im.draggable=false; im.dataset.k=k; im.decoding='async';
+        im.onerror=()=>{ terr.hidden=false; }; im.src=TILE+p+'.png'; tiles.appendChild(im); });
+      [...tiles.children].forEach(im=>{ const [,tx,ty]=im.dataset.k.split('|'); im.style.left=(tx*256-x0)+'px'; im.style.top=(ty*256-y0)+'px'; });
+      pins.textContent='';
+      markers.forEach(m=>{ const s=document.createElement('span'); s.className='mpin'+(m.pick?' pick':''); s.textContent=m.text;
+        s.style.left=(lon2x(m.lng,z)-x0)+'px'; s.style.top=(lat2y(m.lat,z)-y0)+'px'; pins.appendChild(s); });
+    }
+    const req=()=>{ if(!raf) raf=requestAnimationFrame(draw); };
+    function zoomBy(k){ const nz=Math.max(2,Math.min(19,z+k)); if(nz===z) return; const la=y2lat(cy,z), ln=x2lon(cx,z); z=nz; center(la,ln); req(); }
+    zin.onclick=e=>{ e.stopPropagation(); zoomBy(1); }; zout.onclick=e=>{ e.stopPropagation(); zoomBy(-1); };
+    let drag=null;
+    root.addEventListener('pointerdown', e=>{ if(e.target.closest('.zm,.attr')) return; drag={x:e.clientX,y:e.clientY,cx,cy,moved:0}; root.setPointerCapture&&root.setPointerCapture(e.pointerId); });
+    root.addEventListener('pointermove', e=>{ if(!drag) return; const dx=e.clientX-drag.x, dy=e.clientY-drag.y; drag.moved=Math.max(drag.moved,Math.abs(dx)+Math.abs(dy)); cx=drag.cx-dx; cy=drag.cy-dy; req(); });
+    root.addEventListener('pointerup', e=>{ if(!drag) return; const d=drag; drag=null;
+      if(d.moved<6 && o.onTap){ const r=root.getBoundingClientRect(); o.onTap(r6(y2lat(cy-H/2+(e.clientY-r.top),z)), r6(x2lon(cx-W/2+(e.clientX-r.left),z))); } });
+    root.addEventListener('pointercancel', ()=>{ drag=null; });
+    draw();
+    return { setMarkers(m){ markers=m; draw(); }, root };
+  }
+
+  /* ---------- 消費地圖 ---------- */
+  el('mapShow').onclick = ()=>{ mapOn = true; renderMap(); };
+  function renderMap(){
+    renderMonthBar();
+    const items = monthItems();
+    const xy = items.filter(p=>hasXY(p.loc)), labelOnly = items.filter(p=>p.loc && !hasXY(p.loc)), none = items.filter(p=>!p.loc);
+    /* 清單：①②③ 和地圖標記同編號 */
+    const list = el('mapList'); list.textContent='';
+    const row = (k, p, sub, href, linkText)=>{
+      const r=document.createElement('div'); r.className='mrow'; r.setAttribute('role','listitem'); r.dataset.id=p.id;
+      const kk=document.createElement('span'); kk.className='k'; kk.textContent=k;
+      const t=document.createElement('div'); t.className='t'; const d=new Date(p.ts); t.textContent=`${d.getMonth()+1}/${d.getDate()} ${recText(p)}`;
+      const s=document.createElement('small'); s.textContent=sub; t.appendChild(s);
+      const a=document.createElement('a'); a.href=href; a.target='_blank'; a.rel='noopener noreferrer'; a.textContent=linkText;
+      r.append(kk, t, a); list.appendChild(r);
+    };
+    xy.forEach((p,i)=>row(NO(i), p, `${hasAmt(p)?nt(p.amount):'未填金額'}・${SRC[p.loc.src]||'手動填'}${p.loc.label?'：'+p.loc.label:''}${p.loc.acc?`（誤差約 ${p.loc.acc} 公尺）`:''}`, osmLink(p.loc), '開地圖 ↗'));
+    labelOnly.forEach(p=>row('－', p, `${hasAmt(p)?nt(p.amount):'未填金額'}・只有地點名稱：${p.loc.label}（沒有座標，不在地圖上）`, 'https://www.openstreetmap.org/search?query='+encodeURIComponent(p.loc.label), '搜尋地圖 ↗'));
+    const nl = el('mapNoLoc'); nl.dataset.count = String(none.length);
+    nl.textContent = !items.length ? '這個月還沒有紀錄。' : none.length ? `○ ${xy.length||labelOnly.length?'另有':'本月'} ${none.length} 筆沒有位置（舊紀錄或沒存位置），照常在列表、日曆、統計顯示，只是不會出現在地圖上。` : '';
+    /* 地圖區 */
+    const box = el('mapCanvas'), cover = el('mapCover'), off = el('mapOffline');
+    box.textContent = '';   /* R2：只清地圖這一層，說明、按鈕、離線提示都留著 */
+    const offline = navigator.onLine === false;
+    off.classList.toggle('hidden', !offline);
+    if(offline){ cover.hidden = true; return; }
+    if(!xy.length){ cover.hidden=false; el('mapCoverT').textContent='這個月沒有可以放到地圖上的紀錄（要有座標）。記一筆時按「取得目前位置」就會出現在這裡。'; el('mapShow').hidden=true; return; }
+    el('mapShow').hidden=false;
+    if(!mapOn){ cover.hidden=false; el('mapCoverT').textContent=`這個月有 ${xy.length} 筆有位置。地圖要連網才看得到，按下去會向 OpenStreetMap 下載這一區的地圖圖片。`; return; }
+    cover.hidden = true;
+    makeMap(box, { fit:true, markers: xy.map((p,i)=>({ lat:p.loc.lat, lng:p.loc.lng, text:`${NO(i)} ${hasAmt(p)?nt(p.amount):''}`.trim() })) });
+  }
+
+  /* ---------- 記一筆：位置欄（主程式 openEntry／enSave 會呼叫下面兩個函式） ---------- */
+  let enLoc = null, pick = null;
+  const DEF = { lat:25.0478, lng:121.517 };   // 預設中心：台北車站（只在「在地圖上點選」又還沒有座標時使用）
+  function locStatus(t, err){ const s=el('enLocStatus'); s.classList.toggle('err', !!err);
+    if(t){ s.textContent=t; return; }
+    s.textContent = hasXY(enLoc) ? `● 已有座標（${SRC[enLoc.src]||'手動填'}${enLoc.acc?`，誤差約 ${enLoc.acc} 公尺`:''}）` : '○ 沒有座標（不存也可以）'; }
+  window.v2OpenLoc = function(p){
+    enLoc = p && p.loc ? {...p.loc} : null;
+    el('enLocLabel').value = enLoc && enLoc.label || '';
+    setCoord(hasXY(enLoc) ? `${enLoc.lat}, ${enLoc.lng}` : '');
+    el('enLocMap').classList.add('hidden'); el('enLocMap').textContent=''; pick=null; el('enLocGps').disabled=false;
+    locStatus();
+  };
+  el('enLocGps').onclick = ()=>{
+    if(!navigator.geolocation){ locStatus('▲ 這個瀏覽器不能定位，可以手動填地點。紀錄照樣可以儲存。', true); return; }
+    const btn=el('enLocGps'); btn.disabled=true; locStatus('定位中…（最多 20 秒）');
+    /* 觀察項 O1：有些手機不會回應定位逾時，自己再設 20 秒保險；時間到就恢復按鈕並說明原因 */
+    let done=false;
+    const wd=setTimeout(()=>{ if(done) return; done=true; btn.disabled=false;
+      locStatus('▲ 定位沒有回應（等了 20 秒）。可以再按一次，或手動填地點。紀錄照樣可以儲存。', true); }, 20000);
+    navigator.geolocation.getCurrentPosition(pos=>{
+      if(done) return; done=true; clearTimeout(wd);
+      btn.disabled=false; const c=pos.coords;
+      if(!(isFinite(c.latitude)&&isFinite(c.longitude)&&Math.abs(c.latitude)<=90&&Math.abs(c.longitude)<=180)){ locStatus('▲ 取得的位置不正確，請再試一次或手動填。', true); return; }
+      enLoc = { ...(enLoc||{}), lat:r6(c.latitude), lng:r6(c.longitude), acc:Math.round(c.accuracy||0), src:'gps', at:Date.now() };
+      setCoord(`${enLoc.lat}, ${enLoc.lng}`);
+      if(pick) pick.setMarkers([{ lat:enLoc.lat, lng:enLoc.lng, text:'● 這裡', pick:true }]);
+      if(c.accuracy>1000) locStatus(`▲ 已取得位置，但誤差約 ${Math.round(c.accuracy)} 公尺，可能不準；不要的話按「清除位置」。`, true); else locStatus();
+    }, e=>{
+      if(done) return; done=true; clearTimeout(wd);
+      btn.disabled=false;
+      locStatus(e && e.code===1 ? '▲ 定位被拒絕。要用的話請到 iPhone「設定 › 隱私權與安全性 › 定位服務」允許 Safari 網站；也可以手動填地點。紀錄照樣可以儲存。'
+        : e && e.code===3 ? '▲ 定位逾時（15 秒）。可以再按一次，或手動填地點。紀錄照樣可以儲存。'
+        : '▲ 目前取不到位置，可以手動填地點。紀錄照樣可以儲存。', true);
+    }, { enableHighAccuracy:true, timeout:15000, maximumAge:60000 });
+  };
+  el('enLocPick').onclick = ()=>{
+    if(navigator.onLine===false){ locStatus('▲ 離線時不能用地圖點選，可以手動填地點或座標。', true); return; }
+    const m = el('enLocMap'); m.classList.remove('hidden');
+    const c = hasXY(enLoc) ? enLoc : DEF;
+    pick = makeMap(m, { center:c, zoom:16, markers: hasXY(enLoc) ? [{ lat:enLoc.lat, lng:enLoc.lng, text:'● 這裡', pick:true }] : [],
+      onTap:(lat,lng)=>{ enLoc = { ...(enLoc||{}), lat, lng, src:'map', at:Date.now() }; delete enLoc.acc;
+        setCoord(`${lat}, ${lng}`); pick.setMarkers([{ lat, lng, text:'● 這裡', pick:true }]); locStatus('● 已在地圖上選好位置（按「儲存」才會存）'); } });
+    locStatus('點一下地圖就會選那個位置；可以拖動、按 ＋－ 放大縮小。');
+  };
+  el('enLocClear').onclick = ()=>{ enLoc=null; el('enLocLabel').value=''; setCoord(''); el('enLocMap').classList.add('hidden'); el('enLocMap').textContent=''; pick=null; locStatus('○ 已清除位置（按「儲存」才會生效）'); };
+  /* 儲存前檢查位置欄位（防呆）：回傳 {ok, loc}；loc=null 代表這筆沒有位置 */
+  window.v2ReadLoc = function(){
+    const label = el('enLocLabel').value.trim(), ct = coordEl ? coordEl.value.trim() : '';
+    if(label.length > 60) return { ok:false, msg:`▲ 地點名稱最多 60 字（現在 ${label.length} 字）` };
+    let lat=null, lng=null;
+    if(ct){
+      const m = ct.replace(/[，、]/g, ',').match(/^(-?\d+(?:\.\d+)?)\s*(?:,|\s)\s*(-?\d+(?:\.\d+)?)$/);
+      if(!m) return { ok:false, msg:'▲ 座標格式要像「25.0478, 121.5170」（緯度, 經度），緯度 -90～90、經度 -180～180' };
+      lat = +m[1]; lng = +m[2];
+      if(lat<-90 || lat>90) return { ok:false, msg:`▲ 緯度要在 -90～90 之間（現在是 ${m[1]}）` };
+      if(lng<-180 || lng>180) return { ok:false, msg:`▲ 經度要在 -180～180 之間（現在是 ${m[2]}）` };
+      lat = r6(lat); lng = r6(lng);
+    }
+    if(lat===null && !label) return { ok:true, loc:null };
+    const same = hasXY(enLoc) && lat!==null && enLoc.lat===lat && enLoc.lng===lng;
+    const loc = { src: same ? enLoc.src : 'manual', at: (enLoc && enLoc.at) || Date.now() };
+    if(lat!==null){ loc.lat=lat; loc.lng=lng; if(same && enLoc.acc) loc.acc=enLoc.acc; }
+    if(label) loc.label = label;
+    return { ok:true, loc: cleanLoc(loc) };
+  };
 })();
 </script>
 </body>
