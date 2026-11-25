@@ -3,7 +3,7 @@
   工具名稱：拍照記錄（iOS 風格版）
   原檔：外部 AI 製作的「用餐記錄」（開發日期 2026-11-23；原檔註記 AI 協作：Claude），資料庫名稱沿用 mealcam 以保留舊資料
   標示：GROK 輔助・作者：帥
-  製作日期：2026-11-24　修改日期：2026-11-25 01:10（v2 開工 2026-11-24 23:19）
+  製作日期：2026-11-24　修改日期：2026-11-25 13:24（v2 開工 2026-11-24 23:19）
   本版修改：
     1. 外觀全面改為 iOS 風格（系統字型、#F2F2F7 底、白色圓角卡片、分組列表、底部分頁列、safe-area）；色弱友善（顏色＋文字＋符號）
     2. 工具名稱改為「拍照記錄」
@@ -11,12 +11,18 @@
     4. 新增「統計」分頁：本月／本週總花費、日平均、本月各類別（圓環圖＋長條）、最近 30 天每日花費（只讀取，不改資料）
     5. 工程師複查：金額範圍提示、補登未來日期要先詢問
     6. 外觀改為 iOS 27 Liquid Glass 風格（浮動玻璃分頁列＋醒目「拍照」分頁、捲動霧面導覽列、內縮大圓角面板、膠囊按鈕、大圖卡片、類別圖示）
-  更新紀錄（v2，2026-11-25 01:10）：
-    7. 記帳日曆：月曆上每天合計金額，點一天列出那天紀錄；寬度 < 768px 一天一列（單欄），>= 768px 7 欄
+  更新紀錄（v2，2026-11-25 13:24）：
+    7. 記帳日曆：月曆上每天合計金額，點一天列出那天紀錄；寬度 <= 768px 一天一列（單欄），>= 769px 7 欄（v3 修正：原本 768 剛好是 7 欄）
     8. 消費地圖：記一筆可選存位置（按鈕才定位／手動填／地圖點選），位置存在同一筆紀錄的選填欄位 loc；地圖用 OpenStreetMap 圖磚，按「顯示地圖」才連網
     9. 離線使用：GROK-photo-notes-sw.js（只管 photonotes-shell- 快取，不碰 mealcam-mirror-v1）
    10. 主畫面圖示：GROK-photo-notes.webmanifest、GROK-photo-notes-icon-180/192/512.png
    11. 頁首圖示換成 app 圖示（純裝飾）；分頁小圖示 favicon 換成新圖示（GROK-photo-notes-icon-192.png＋favicon.ico）
+  更新紀錄（v3，帥 2026-11-25 12:31 重開「拍照記錄 還要再修」，同一檔修改）：
+   12. 自訂類別：設定 →「類別管理」可新增、改名、刪除、上下移動；存 localStorage mealcam.cats；名稱 1～10 字、不可重複、最多 20 個；「其他」不能刪除或改名
+       改名：舊紀錄（資料庫＋備份副本＋摘要）的類別一起改；刪除：紀錄原始類別不動，畫面顯示成「其他」（再新增同名類別會自動歸回）
+   13. 一筆多張：同一筆最多 5 張照片，共用金額／類別／筆記／位置；追加的照片是 photos 裡的新一筆，選填欄位 grp＝這筆主照片 id（不升資料庫版本、舊資料不用搬）
+       刪除＝整筆進回收桶；記一筆畫面可移除單張（最後 1 張不能移除；移除第 1 張時由下一張接手金額等資料）
+   14. 工程師驗收修正 R1：新手機（沒存過 mealcam.cats）匯入備份時直接採用備份的類別清單；R2：單欄／兩欄分界改成 769px（768 含以下單欄）
   iOS 27 設計查證來源（2026-11-24 查）：
     https://www.macrumors.com/2026/06/10/how-liquid-glass-is-changing-in-ios-27/
     https://designfornative.com/what-designers-need-to-know-about-ios-27/
@@ -25,6 +31,7 @@
     https://developer.apple.com/design/human-interface-guidelines/tab-bars
     https://developer.apple.com/documentation/technologyoverviews/adopting-liquid-glass
     https://developer.apple.com/videos/play/wwdc2025/356/
+  v3 新增欄位（都是選填）：localStorage mealcam.cats＝["早餐",…]；照片紀錄 grp＝主照片 id；備份 JSON 最外層 cats、每張照片 grp
   資料相容（不可改）：localStorage mealcam.settings／mealcam.meta.v1／mealcam.diag／mealcam.launches／mealcam.lastBackup；
     IndexedDB mealcam 版本 1、store photos（keyPath id）；Cache Storage mealcam-mirror-v1；備份 JSON {app:"mealcam",version:1,...}
   資料存放：照片和位置存在本機瀏覽器 IndexedDB（不上傳、不需帳號）；按「取得目前位置」才定位；看地圖時才向 OpenStreetMap 下載地圖圖片
@@ -74,6 +81,7 @@
   --ico-5:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272.2%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M5%208h14l-1%2013H6zM9%208V6a3%203%200%200%201%206%200v2%27%2F%3E%3C%2Fsvg%3E");
   --ico-6:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272.2%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Ccircle%20cx%3D%275%27%20cy%3D%2712%27%20r%3D%271.6%27%2F%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%271.6%27%2F%3E%3Ccircle%20cx%3D%2719%27%20cy%3D%2712%27%20r%3D%271.6%27%2F%3E%3C%2Fsvg%3E");
   --ico-7:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272.2%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%278%27%20stroke-dasharray%3D%273%203%27%2F%3E%3C%2Fsvg%3E");
+  --ico-8:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272.2%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M3%2012V4h8l10%2010-8%208z%27%2F%3E%3Ccircle%20cx%3D%277.5%27%20cy%3D%277.5%27%20r%3D%271.5%27%2F%3E%3C%2Fsvg%3E");
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 [hidden],.hidden{display:none!important}
@@ -433,8 +441,8 @@ textarea{width:100%;min-height:96px;font-family:var(--mono);font-size:13px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 
-/* ---------- 768px 以上：記錄兩欄、統計並排；小於 768px 一律單欄 ---------- */
-@media (min-width:768px){
+/* ---------- 769px 以上：記錄兩欄、統計並排；768px（含）以下一律單欄 ---------- */
+@media (min-width:769px){
   .rows{grid-template-columns:repeat(2,minmax(0,1fr))}
   .statgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 20px;align-items:start}
   .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
@@ -476,7 +484,7 @@ textarea{width:100%;min-height:96px;font-family:var(--mono);font-size:13px}
 .calrec small{display:block;color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .calrec b{font-variant-numeric:tabular-nums;white-space:nowrap}
 .note{font-size:13px;color:var(--ink2);margin:10px 4px}
-@media (min-width:768px){
+@media (min-width:769px){
   .calwk{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));text-align:center;font-size:13px;font-weight:700;color:var(--muted);margin-bottom:6px}
   .caldays.grid{grid-template-columns:repeat(7,minmax(0,1fr));gap:1px;background:var(--sep);border:1px solid var(--sep)}
   .caldays.grid .calday{grid-template-columns:1fr;align-content:start;align-items:start;gap:2px;border-top:0;min-height:92px;background:var(--card);padding:8px}
@@ -522,6 +530,32 @@ textarea{width:100%;min-height:96px;font-family:var(--mono);font-size:13px}
 .locst.err{color:var(--danger);font-weight:600}
 .linkbtn{color:var(--danger);font-weight:700;font-size:14px;min-height:var(--target);padding:0 2px;text-decoration:underline}
 #changelog b{display:block;width:auto}
+/* ---------- v3（2026-11-25）：一筆多張、類別管理（色弱友善：靠文字＋符號，顏色只輔助） ---------- */
+.cat[data-c]{--ico:var(--ico-8)}   /* 自訂類別預設用「標籤」圖示；內建類別由後面的規則覆蓋 */
+.thumb .row-pics{position:absolute;left:10px;bottom:10px;padding:3px 10px;border-radius:999px;background:rgba(0,0,0,.74);color:#fff;font-size:14px;font-weight:800;box-shadow:0 0 0 2px #fff}
+.picbox{margin-top:14px;padding:12px;border-radius:var(--r-in);background:var(--bg)}
+.pichead{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.pichead h3{margin:0;font-size:15px;color:var(--ink)}
+.piccount{font-size:14px;font-weight:800;color:var(--ink2);font-variant-numeric:tabular-nums}
+.pics{list-style:none;margin:8px 0 10px;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px}
+.pic{position:relative;min-width:0}
+.pic img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;display:block;background:var(--fill)}
+.pic .picno{position:absolute;left:6px;top:6px;min-width:24px;height:24px;padding:0 6px;border-radius:12px;background:rgba(0,0,0,.74);color:#fff;font-size:13px;font-weight:800;display:grid;place-items:center}
+.pic .picdel{display:block;width:100%;min-height:var(--target);margin-top:4px;border-radius:999px;font-size:14px;font-weight:700;color:var(--danger);background:var(--danger-soft)}
+.picbox .btn{min-height:var(--target);font-size:15px;padding:8px 10px}
+#catMgr .sec{margin-top:22px}
+.catlist{list-style:none;margin:10px 0 0;padding:0}
+.catrow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:8px 0;border-bottom:.5px solid var(--sep)}
+.catrow .catno{font-family:var(--mono);font-size:13px;color:var(--muted);min-width:2.2em}
+.catrow .row-cat{font-size:15px}
+.catrow .catlock{font-size:12px;color:var(--muted)}
+.catrow .catbtns{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+.catrow .mini{padding:6px 10px}
+.catrow .mini:disabled{opacity:.4}
+.catrow .catEdit{flex:1 1 8em;min-width:0}
+.catadd-row{display:flex;gap:8px;align-items:center}
+.catadd-row input{flex:1;min-width:0}
+.catadd-row .mini{flex:none}
 /* 類別 → 圖示 */
 .row-cat[data-cat="早餐"],.catname[data-cat="早餐"],.cat[data-c="早餐"]{--ico:var(--ico-0)}
 .row-cat[data-cat="午餐"],.catname[data-cat="午餐"],.cat[data-c="午餐"]{--ico:var(--ico-1)}
@@ -531,7 +565,8 @@ textarea{width:100%;min-height:96px;font-family:var(--mono);font-size:13px}
 .row-cat[data-cat="購物"],.catname[data-cat="購物"],.cat[data-c="購物"]{--ico:var(--ico-5)}
 .row-cat[data-cat="其他"],.catname[data-cat="其他"],.cat[data-c="其他"]{--ico:var(--ico-6)}
 .row-cat[data-cat="未分類"],.catname[data-cat="未分類"],.cat[data-c="未分類"]{--ico:var(--ico-7)}
-[data-cat]:not([data-cat="早餐"]):not([data-cat="午餐"]):not([data-cat="晚餐"]):not([data-cat="飲料"]):not([data-cat="點心"]):not([data-cat="購物"]):not([data-cat="其他"]):not([data-cat="未分類"]){--ico:var(--ico-7)}
+.row-cat[data-cat="自訂"],.catname[data-cat="自訂"],.cat[data-c="自訂"]{--ico:var(--ico-8)}
+[data-cat]:not([data-cat="早餐"]):not([data-cat="午餐"]):not([data-cat="晚餐"]):not([data-cat="飲料"]):not([data-cat="點心"]):not([data-cat="購物"]):not([data-cat="其他"]):not([data-cat="未分類"]){--ico:var(--ico-8)}
 </style>
 </head>
 <body>
@@ -591,7 +626,7 @@ textarea{width:100%;min-height:96px;font-family:var(--mono);font-size:13px}
     <h2 id="mTitle">—</h2>
     <button id="mNext" aria-label="下一個月">下個月 ▶</button>
   </div>
-  <!-- v2：記帳日曆（手機一天一列；768px 以上 7 欄月曆） -->
+  <!-- v2：記帳日曆（手機一天一列；769px 以上 7 欄月曆） -->
   <section id="calView" aria-label="記帳日曆">
     <div class="mtot"><span id="calMonthSub">本月合計</span><b id="calMonthTotal" data-value="0">NT$ 0</b></div>
     <div class="calwk" id="calWk" aria-hidden="true"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>
@@ -657,7 +692,7 @@ textarea{width:100%;min-height:96px;font-family:var(--mono);font-size:13px}
 
 <footer class="site-footer">
   拍照記錄 ｜ GROK 輔助・作者：帥<br>
-  製作日期：2026-11-24 ｜ 修改日期：2026-11-25 01:10<br>
+  製作日期：2026-11-24 ｜ 修改日期：2026-11-25 13:24<br>
   照片和位置只存在這支手機，不上傳；按「取得目前位置」才會定位
 </footer>
 </div>
@@ -756,7 +791,7 @@ textarea{width:100%;min-height:96px;font-family:var(--mono);font-size:13px}
   </div>
   <div class="msg" id="expMsg"></div>
   <p class="hint mt" id="expLast"></p>
-  <div class="sheet-footer">拍照記錄 ｜ GROK 輔助・作者：帥 ｜ 製作日期：2026-11-24 ｜ 修改日期：2026-11-25 01:10</div>
+  <div class="sheet-footer">拍照記錄 ｜ GROK 輔助・作者：帥 ｜ 製作日期：2026-11-24 ｜ 修改日期：2026-11-25 13:24</div>
 </div>
 
 <!-- ========== 記帳面板（金額、類別、筆記） ========== -->
@@ -765,6 +800,15 @@ textarea{width:100%;min-height:96px;font-family:var(--mono);font-size:13px}
   <div class="entry-head"><img id="enImg" alt="這筆記錄的照片"><div><h2>記一筆</h2><div class="tm" id="enTime">--:--</div></div></div>
   <div class="amtbox"><span>$</span><input id="enAmt" type="text" inputmode="decimal" placeholder="0" autocomplete="off" aria-label="金額"></div>
   <div class="cats" id="enCats" aria-label="類別"></div>
+  <!-- v3：這筆的照片（最多 5 張，共用金額／類別／筆記） -->
+  <section class="picbox" id="enPicBox" aria-labelledby="enPicTitle">
+    <div class="pichead"><h3 id="enPicTitle">這筆的照片</h3><span class="piccount" id="enPicCount" aria-live="polite">1 / 5 張</span></div>
+    <ul class="pics" id="enPics" aria-label="這筆的照片"></ul>
+    <div class="two"><button class="btn" id="enAddShotBtn" type="button">◉ 拍照加一張</button><button class="btn" id="enAddAlbumBtn" type="button">＋ 從相簿加入</button></div>
+    <p class="hint tight mt" id="enPicHint">一筆最多 5 張；照片共用上面的金額、類別、筆記。</p>
+    <input type="file" id="enAddShot" accept="image/*" capture="environment" class="hidden">
+    <input type="file" id="enAddAlbum" accept="image/*" multiple class="hidden">
+  </section>
   <textarea id="enNote" placeholder="筆記（選填）：例如 店名、雞腿便當、去冰微糖" aria-label="筆記"></textarea>
   <!-- v2：位置（選填）。按「取得目前位置」才會問定位權限 -->
   <fieldset class="locbox" id="enLoc">
@@ -783,7 +827,7 @@ textarea{width:100%;min-height:96px;font-family:var(--mono);font-size:13px}
   </fieldset>
   <div class="msg" id="enMsg"></div>
   <div class="two mt"><button class="btn" id="enSkip">略過</button><button class="btn primary" id="enSave">儲存</button></div>
-  <div class="sheet-footer">拍照記錄 ｜ GROK 輔助・作者：帥 ｜ 製作日期：2026-11-24 ｜ 修改日期：2026-11-25 01:10</div>
+  <div class="sheet-footer">拍照記錄 ｜ GROK 輔助・作者：帥 ｜ 製作日期：2026-11-24 ｜ 修改日期：2026-11-25 13:24</div>
 </div>
 
 <!-- ========== 期間明細面板（原本的統計面板） ========== -->
@@ -802,7 +846,7 @@ textarea{width:100%;min-height:96px;font-family:var(--mono);font-size:13px}
   <div class="sec">明細</div>
   <div id="stList"></div>
   <button class="btn" id="stCsv"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>匯出這段期間（CSV，可用 Excel 開）</button>
-  <div class="sheet-footer">拍照記錄 ｜ GROK 輔助・作者：帥 ｜ 製作日期：2026-11-24 ｜ 修改日期：2026-11-25 01:10</div>
+  <div class="sheet-footer">拍照記錄 ｜ GROK 輔助・作者：帥 ｜ 製作日期：2026-11-24 ｜ 修改日期：2026-11-25 13:24</div>
 </div>
 
 <!-- ========== 設定面板 ========== -->
@@ -834,6 +878,16 @@ textarea{width:100%;min-height:96px;font-family:var(--mono);font-size:13px}
   <div class="row"><label>拍照後跳出記帳<small>可輸入金額、類別、筆記；不想記可按略過</small></label>
     <div class="seg" data-key="askEntry"><button data-v="on">開</button><button data-v="off">關</button></div></div>
 
+  <!-- v3：類別管理 -->
+  <section id="catMgr" aria-labelledby="catMgrTitle">
+    <h3 class="sec" id="catMgrTitle">類別管理</h3>
+    <p class="hint tight">可新增、改名、刪除、上下移動。名稱 1～10 字、不可重複，最多 20 個。「其他」不能刪除或改名；刪掉的類別，舊紀錄會顯示成「其他」，資料不會刪除。</p>
+    <ol class="catlist" id="catList"></ol>
+    <div class="catadd"><label class="lbl2" for="catNew">新增類別（1～10 字）</label>
+      <div class="catadd-row"><input id="catNew" type="text" maxlength="30" placeholder="例如：宵夜、交通" autocomplete="off"><button class="mini" id="catAdd" type="button">＋ 新增</button></div></div>
+    <div class="msg" id="catMsg" role="status"></div>
+  </section>
+
   <div class="sec">備份與轉移（JSON）</div>
   <p class="hint tight">換手機前先備份；備份檔含全部照片與設定，可在另一支手機匯入。</p>
   <div class="two mt">
@@ -850,7 +904,7 @@ textarea{width:100%;min-height:96px;font-family:var(--mono);font-size:13px}
   <div class="msg" id="bkMsg"></div>
 
   <div class="sec">回收桶</div>
-  <p class="hint tight">刪除的照片保留 30 天，可以還原。</p>
+  <p class="hint tight">刪除的照片保留 30 天，可以還原。整筆刪除的會合成一項（標示「▣ 整筆 N 張」）。</p>
   <div id="trashList"></div>
 
   <div class="sec">儲存狀態</div>
@@ -862,18 +916,20 @@ textarea{width:100%;min-height:96px;font-family:var(--mono);font-size:13px}
     <div><b>作者</b>帥</div>
     <div><b>標示</b>GROK 輔助・作者：帥</div>
     <div><b>製作日期</b>2026-11-24</div>
-    <div><b>修改日期</b>2026-11-25 01:10</div>
+    <div><b>修改日期</b>2026-11-25 13:24</div>
     <div><b>資料存放</b>照片和位置只存在這支手機，不上傳；按「取得目前位置」才會定位；看地圖時才會連 OpenStreetMap</div>
   </div>
   <div class="sec">更新紀錄</div>
   <div class="about" id="changelog">
+    <div><b>2026-11-25 13:24</b>工程師驗收修正：新手機匯入備份時，類別清單照備份還原（順序、改名都一樣）；寬度剛好 768px 時改為單欄</div>
+    <div><b>2026-11-25 12:59</b>類別可自訂（設定 →「類別管理」：新增、改名、刪除、上下移動）；一筆最多 5 張照片，可追加或移除單張，多張共用金額、類別、筆記</div>
     <div><b>2026-11-25 01:10</b>瀏覽器分頁小圖示也換成新圖示；頁首圖示改為純裝飾，報讀不會把「拍照記錄」唸兩次</div>
     <div><b>2026-11-25 00:59</b>頁首圖示換成新的 app 圖示（深藍底、白色相機、鏡頭裡有「$」），離線也看得到</div>
     <div><b>2026-11-25 00:07</b>工程師複查修正：手機日曆換月後空白、地圖換月／斷網後空白、座標提示寫出合法範圍；定位沒回應會逾時、月份按鈕改「◀ 上個月／下個月 ▶」、離線快取忽略 ?v= 參數</div>
     <div><b>2026-11-24 23:33</b>新增記帳日曆、消費地圖（位置選填）、離線使用、主畫面圖示</div>
     <div><b>2026-11-24 22:51</b>iOS 27 風格、統計分頁、依日期分組、金額與未來日期防呆</div>
   </div>
-  <div class="sheet-footer">拍照記錄 ｜ GROK 輔助・作者：帥 ｜ 製作日期：2026-11-24 ｜ 修改日期：2026-11-25 01:10</div>
+  <div class="sheet-footer">拍照記錄 ｜ GROK 輔助・作者：帥 ｜ 製作日期：2026-11-24 ｜ 修改日期：2026-11-25 13:24</div>
 </div>
 
 <!-- ========== 確認對話框、提示、處理中 ========== -->
@@ -1436,10 +1492,11 @@ const DB = (()=>{
       all[rec.id]={ts:rec.ts,backfill:!!rec.backfill,deleted:!!rec.deleted,deletedAt:rec.deletedAt||0,savedAt:rec.savedAt||0,edited:!!rec.orig,
         amount:(typeof rec.amount==='number'?rec.amount:null),cat:rec.cat||'',note:rec.note||'',tiny,v:rec._v};
       { const L=cleanLoc(rec.loc); if(L) all[rec.id].loc=L; }
+      if(typeof rec.grp==='string' && rec.grp) all[rec.id].grp=rec.grp;
       localStorage.setItem(META, JSON.stringify(all)); return true; }catch(e){ diag('摘要寫入失敗：'+(e&&e.name)); return false; } }
   function metaDel(id){ try{ const all=metaAll(); delete all[id]; localStorage.setItem(META, JSON.stringify(all)); }catch(e){} }
   function metaToRec(id,m){ const b=m.tiny?dataURLToBlob(m.tiny):new Blob([],{type:'image/jpeg'});
-    return {id,ts:m.ts,backfill:m.backfill,deleted:m.deleted,deletedAt:m.deletedAt,savedAt:m.savedAt,amount:m.amount,cat:m.cat,note:m.note,...(cleanLoc(m.loc)?{loc:cleanLoc(m.loc)}:{}),full:b,thumb:b,_lowres:true}; }
+    return {id,ts:m.ts,backfill:m.backfill,deleted:m.deleted,deletedAt:m.deletedAt,savedAt:m.savedAt,amount:m.amount,cat:m.cat,note:m.note,...(cleanLoc(m.loc)?{loc:cleanLoc(m.loc)}:{}),...(typeof m.grp==='string'&&m.grp?{grp:m.grp}:{}),full:b,thumb:b,_lowres:true}; }
 
   /* 修復：資料庫少掉的照片，從鏡像補回去 */
   async function heal(dbIds){
@@ -1515,14 +1572,27 @@ async function loadAll(){
   // 回收桶超過 30 天自動清除
   const limit = Date.now()-30*864e5;
   for(const r of recs){ if(r.deleted && r.deletedAt<limit){ await DB.del(r.id); r._gone=true; } }
-  photos = recs.filter(r=>!r._gone).map(r=>({id:r.id,ts:r.ts,backfill:!!r.backfill,deleted:!!r.deleted,deletedAt:r.deletedAt||0,savedAt:r.savedAt||0,edited:!!r.orig,amount:(typeof r.amount==='number'?r.amount:null),cat:r.cat||'',note:r.note||'',loc:cleanLoc(r.loc),thumbUrl:URL.createObjectURL(r.thumb)}))
+  photos = recs.filter(r=>!r._gone).map(r=>({id:r.id,ts:r.ts,backfill:!!r.backfill,deleted:!!r.deleted,deletedAt:r.deletedAt||0,savedAt:r.savedAt||0,edited:!!r.orig,amount:(typeof r.amount==='number'?r.amount:null),cat:dispCat(r.cat),cat0:r.cat||'',grp:(typeof r.grp==='string'&&r.grp!==r.id)?r.grp:'',note:r.note||'',loc:cleanLoc(r.loc),thumbUrl:URL.createObjectURL(r.thumb)}))
                .sort((a,b)=>a.ts-b.ts);
   return true;
 }
-const live = () => photos.filter(p=>!p.deleted);
+const PICS_MAX = 5;   /* v3：一筆最多 5 張 */
+function buildRecs(list){
+  /* 回傳新的「這筆」物件（主照片欄位的淺拷貝＋pics），不在照片物件上加循環參照 */
+  const byId=new Map(list.map(p=>[p.id,p])), heads=new Map(), out=[];
+  list.forEach(p=>{ const h=p.grp && byId.get(p.grp); if(!h || h.grp){ const r={...p, pics:[p]}; heads.set(p.id,r); out.push(r); } });
+  list.forEach(p=>{ if(heads.has(p.id)) return; const r=heads.get(p.grp);
+    if(r && r.pics.length<PICS_MAX) r.pics.push(p); else { const x={...p, pics:[p]}; heads.set(p.id,x); out.push(x); } });
+  return out.sort((a,b)=>a.ts-b.ts);
+}
+const live = () => buildRecs(photos.filter(p=>!p.deleted));
+/* 某一天（依這筆的時間）的全部照片，檢視器左右滑用 */
+const dayPics = k => live().filter(r=>dayKey(r.ts)===k).flatMap(r=>r.pics);
+/* 用照片 id 找它所屬的那一筆 */
+const recById = id => live().find(r=>r.id===id || r.pics.some(q=>q.id===id));
 /* 把一筆紀錄加進畫面清單（資料庫暫時讀不到時使用） */
 function addToPhotos(r){ if(photos.some(p=>p.id===r.id)) return;
-  photos.push({id:r.id,ts:r.ts,backfill:!!r.backfill,deleted:!!r.deleted,deletedAt:r.deletedAt||0,savedAt:r.savedAt||0,edited:!!r.orig,amount:(typeof r.amount==='number'?r.amount:null),cat:r.cat||'',note:r.note||'',loc:cleanLoc(r.loc),thumbUrl:URL.createObjectURL(r.thumb)});
+  photos.push({id:r.id,ts:r.ts,backfill:!!r.backfill,deleted:!!r.deleted,deletedAt:r.deletedAt||0,savedAt:r.savedAt||0,edited:!!r.orig,amount:(typeof r.amount==='number'?r.amount:null),cat:dispCat(r.cat),cat0:r.cat||'',grp:(typeof r.grp==='string'&&r.grp!==r.id)?r.grp:'',note:r.note||'',loc:cleanLoc(r.loc),thumbUrl:URL.createObjectURL(r.thumb)});
   photos.sort((a,b)=>a.ts-b.ts); }
 
 /* =========================================================
@@ -1560,7 +1630,7 @@ function drawStamp(ctx, W, H, ts, opt){
   lines.forEach((l,i)=>{ ctx.font=l.f; ctx.fillStyle = i===lines.length-1 ? '#fff' : 'rgba(255,255,255,.88)'; ctx.fillText(l.t, x+padX, cy - (i===lines.length-1? l.h*0.08:0)); cy+=l.h+gap; });
 }
 
-async function processFile(file, backfill){
+async function processFile(file, backfill, grp){
   let ts = backfill ? (file.lastModified || Date.now()) : Date.now();
   /* 工程師複查 B：補登照片的時間比現在晚 5 分鐘以上，不直接補登；問使用者要「改用現在時間」還是「略過這張」（略過回傳 null） */
   if(backfill && ts > Date.now()+5*60000){
@@ -1581,6 +1651,7 @@ async function processFile(file, backfill){
   tc.getContext('2d').drawImage(c,0,0,tc.width,tc.height);
   const thumb = await toBlob(tc,0.75);
   const rec = { id: ts.toString(36)+Math.random().toString(36).slice(2,7), ts, backfill:!!backfill, deleted:false, deletedAt:0, full, thumb };
+  if(grp) rec.grp=grp;   /* v3：追加到某一筆的照片，記下主照片 id */
   await DB.put(rec);
   return rec;
 }
@@ -1632,7 +1703,7 @@ function render(){
 
   // 日期列
   const dates=$('dates'); dates.textContent='';
-  sorted.forEach(k=>{ const d=keyToDate(k), n=(byDay[k]||[]).length;
+  sorted.forEach(k=>{ const d=keyToDate(k), n=(byDay[k]||[]).reduce((s,r)=>s+r.pics.length,0);
     const b=document.createElement('button'); b.className='chip'+(k===selDay?' on':'');
     b.innerHTML=`<div class="w"></div><div class="d"></div><div class="n"></div>`;
     b.children[0].textContent = k===today ? '今天' : '週'+WD[d.getDay()];
@@ -1647,7 +1718,7 @@ function render(){
   const sd = keyToDate(selDay);
   $('sumLbl').textContent = (selDay===today ? '今天' : '已選日期') + (dayList.length ? ` · 最後 ${hm(dayList[dayList.length-1].ts)}` : '');
   $('sumDay').textContent = dateText(sd.getTime(), S.date);
-  $('sumCount').textContent = dayList.length;
+  $('sumCount').textContent = dayList.reduce((s,r)=>s+r.pics.length,0);
   $('sumLast').textContent = '張';
   const dm=sumAmt(dayList); $('sumMoneyBox').classList.toggle('hidden', !hasAmt(dayList)); $('sumMoney').textContent=money(dm);
 
@@ -1664,7 +1735,7 @@ function render(){
     head.innerHTML=`<span class="badge"></span><span class="srange"></span><span class="scount"></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>`;
     head.children[0].textContent=s.name;
     head.children[1].textContent=`${hm(s.start)}–${hm(s.end)}`;
-    head.children[2].textContent=`${s.items.length} 張${hasAmt(s.items)?' · '+money(sumAmt(s.items)):''}`;
+    head.children[2].textContent=`${s.items.reduce((n,r)=>n+r.pics.length,0)} 張${hasAmt(s.items)?' · '+money(sumAmt(s.items)):''}`;
     head.onclick=()=>{ closed.has(s.key)?closed.delete(s.key):closed.add(s.key); box.classList.toggle('closed'); };
     /* 每張一列：左邊照片（點開放大），右邊時間／類別／金額／備註（點了直接編輯） */
     const grid=document.createElement('div'); grid.className='rows';
@@ -1673,6 +1744,7 @@ function render(){
       const t=document.createElement('button'); t.className='thumb'; t.setAttribute('aria-label',hm(p.ts)+' 照片，點開放大');
       const im=document.createElement('img'); im.src=p.thumbUrl; im.alt=''; im.loading='lazy'; t.appendChild(im);
       if(p.savedAt){ const ok=document.createElement('span'); ok.className='ok'; ok.textContent='✓'; ok.title='已儲存到相簿'; t.appendChild(ok); }
+      if(p.pics.length>1){ const k=document.createElement('span'); k.className='row-pics'; k.textContent=`▣ ${p.pics.length} 張`; t.appendChild(k); t.setAttribute('aria-label',`${hm(p.ts)} 這筆有 ${p.pics.length} 張照片，點開放大`); }
       t.onclick=()=>openViewer(p.id);
       const info=document.createElement('button'); info.className='row-info'; info.setAttribute('aria-label','編輯備註');
       const top=document.createElement('div'); top.className='row-top';
@@ -1697,17 +1769,17 @@ function render(){
    6. 照片檢視器（左右滑、儲存、刪除）
    ========================================================= */
 let vList=[], vIdx=0, vUrl=null;
-function openViewer(id){ vList = live().filter(p=>dayKey(p.ts)===selDay); vIdx=vList.findIndex(p=>p.id===id); $('viewer').classList.add('on'); showV(); }
+function openViewer(id){ vList = dayPics(selDay); vIdx=vList.findIndex(p=>p.id===id); $('viewer').classList.add('on'); showV(); }
 async function showV(){
   const p=vList[vIdx]; if(!p){ closeViewer(); return; }
   const rec=await DB.get(p.id); if(vUrl) URL.revokeObjectURL(vUrl);
   vUrl=URL.createObjectURL(rec.full); $('vImg').src=vUrl;
   $('vTime').textContent=hm(p.ts);
-  const s=splitSessions(vList).find(s=>s.items.includes(p));
-  $('vInfo').textContent=`${s?s.name:''} · 第 ${vIdx+1} / ${vList.length} 張${p.backfill?' · 補登':''}${p.edited?' · 已加字':''}`;
-  const vn=$('vNote'); vn.textContent=''; vn.classList.toggle('empty', p.amount===null && !p.note && !p.cat);
+  const r=recById(p.id)||{...p,pics:[p]}, rd=new Date(r.ts), dn=`${rd.getMonth()+1}/${rd.getDate()}（${WD[rd.getDay()]}）`;
+  $('vInfo').textContent=`${dn} · 第 ${vIdx+1} / ${vList.length} 張${r.pics&&r.pics.length>1?` · 這筆 ${r.pics.indexOf(p)+1} / ${r.pics.length}`:''}${p.backfill?' · 補登':''}${p.edited?' · 已加字':''}`;
+  const vn=$('vNote'); vn.textContent=''; vn.classList.toggle('empty', r.amount===null && !r.note && !r.cat);
   if(vn.classList.contains('empty')) vn.textContent='＋ 記一筆（金額、類別、筆記）';
-  else { [[p.amount!==null?money(p.amount):'','va'],[p.cat,'vc'],[p.note,'vt']].forEach(([t,c])=>{ if(!t) return; const e=document.createElement('span'); e.className=c; e.textContent=t; vn.appendChild(e); }); }
+  else { [[r.amount!==null?money(r.amount):'','va'],[r.cat,'vc'],[r.note,'vt']].forEach(([t,c])=>{ if(!t) return; const e=document.createElement('span'); e.className=c; e.textContent=t; vn.appendChild(e); }); }
   $('vSaveLbl').textContent = p.savedAt ? '已儲存 ✓' : '儲存照片';
   $('vSave').classList.toggle('done', !!p.savedAt);
   $('vPrev').style.visibility = vIdx>0?'visible':'hidden';
@@ -1727,10 +1799,13 @@ $('vSave').onclick = async ()=>{ const p=vList[vIdx];
   const rec=await DB.get(p.id); const d=new Date(p.ts);
   const ok=await saveFile(`拍照記錄_${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}.jpg`, rec.full, 'image/jpeg');
   if(ok){ rec.savedAt=Date.now(); try{ await DB.put(rec); }catch(e){} p.savedAt=rec.savedAt; const q=photos.find(x=>x.id===p.id); if(q) q.savedAt=rec.savedAt; showV(); render(); } };
-$('vDelete').onclick = async ()=>{ const p=vList[vIdx]; const rec=await DB.get(p.id); rec.deleted=true; rec.deletedAt=Date.now(); await DB.put(rec);
-  toast('已移到回收桶，可在設定裡還原'); await loadAll(); vList=live().filter(x=>dayKey(x.ts)===selDay);
+$('vDelete').onclick = async ()=>{ const p=vList[vIdx]; const r=recById(p.id), all=r?r.pics:[p];
+  /* v3：刪除＝整筆（全部照片同一時間進回收桶，還原時一起回來）；多張時先確認 */
+  if(all.length>1 && !await ask(`刪除這一筆（共 ${all.length} 張照片）？會移到回收桶，30 天內可在設定裡還原。`,'刪除整筆')) return;
+  const now=Date.now(); for(const q of all){ const rec=await DB.get(q.id); if(!rec) continue; rec.deleted=true; rec.deletedAt=now; await DB.put(rec); }
+  toast(all.length>1?`已把這筆 ${all.length} 張移到回收桶，可在設定裡還原`:'已移到回收桶，可在設定裡還原'); await loadAll(); vList=dayPics(selDay);
   if(!vList.length){ closeViewer(); } else { vIdx=Math.min(vIdx,vList.length-1); showV(); } render(); };
-$('vPdf').onclick = ()=> exportPdf([vList[vIdx]], `單張_${dayKey(vList[vIdx].ts)}_${hm(vList[vIdx].ts).replace(':','')}`);
+$('vPdf').onclick = ()=>{ const r=recById(vList[vIdx].id)||vList[vIdx]; exportPdf([r], `單筆_${dayKey(r.ts)}_${hm(r.ts).replace(':','')}`); };
 
 /* =========================================================
    6b. 加字編輯器：可加多段文字，拖曳移動，完成後寫回照片
@@ -1821,7 +1896,7 @@ async function makeThumb(src){ const W=src.naturalWidth||src.width, H=src.natura
 async function eCommit(rec, msg){
   rec.savedAt=0;  // 內容變了，需重新儲存
   try{ await DB.put(rec); }catch(e){ toast(e.message,3500); }
-  closeEditor(); await loadAll(); vList=live().filter(x=>dayKey(x.ts)===selDay); showV(); render(); toast(msg);
+  closeEditor(); await loadAll(); vList=dayPics(selDay); showV(); render(); toast(msg);
 }
 $('eDone').onclick=async()=>{
   if(!ED.texts.some(t=>t.text)){ closeEditor(); return; }
@@ -1842,26 +1917,43 @@ $('vEdit').onclick=openEditor;
    6c. 記帳：每張照片可記 金額／類別／筆記
        資料欄位：rec.amount（數字或 null）、rec.cat、rec.note
    ========================================================= */
-const CATS = ['早餐','午餐','晚餐','飲料','點心','購物','其他'];
+/* v3：類別可自訂（設定 →「類別管理」）。存在 localStorage mealcam.cats（陣列）；沒存過就用原本 7 類
+   規則：名稱 1～10 字、不可重複、最多 20 個；「其他」不能刪除或改名
+   刪掉的類別：紀錄裡的原始類別不改（cat0），畫面上顯示成「其他」；之後再新增同名類別會自動歸回 */
+const CATS_DEF = ['早餐','午餐','晚餐','飲料','點心','購物','其他'], CAT_KEY='mealcam.cats', CAT_MAX=20, CAT_LEN=10, CAT_OTHER='其他';
+function cleanCats(a){ const out=[]; if(Array.isArray(a)) for(const x of a){ if(typeof x!=='string') continue; const n=x.trim(); const L=[...n].length;
+    if(L>=1 && L<=CAT_LEN && !out.includes(n) && out.length<CAT_MAX) out.push(n); }
+  if(!out.includes(CAT_OTHER)){ if(out.length>=CAT_MAX) out.pop(); out.push(CAT_OTHER); }
+  return out; }
+let CATS = (()=>{ try{ const raw=localStorage.getItem(CAT_KEY); if(raw) return cleanCats(JSON.parse(raw)); }catch(e){} return CATS_DEF.slice(); })();
+function saveCats(){ try{ localStorage.setItem(CAT_KEY, JSON.stringify(CATS)); return true; }catch(e){ return false; } }
+function dispCat(c){ return !c ? '' : (CATS.includes(c) ? c : CAT_OTHER); }
+function remapCats(){ photos.forEach(p=>{ p.cat=dispCat(p.cat0); }); }
 const money = n => '$' + Number(n||0).toLocaleString('zh-TW',{maximumFractionDigits:2});
 const sumAmt = l => l.reduce((a,p)=>a+(p.amount||0),0);
 const hasAmt = l => l.some(p=>p.amount!==null);
-function guessCat(ts){ const d=new Date(ts), h=d.getHours()+d.getMinutes()/60; return h<10.5?'早餐':h<14?'午餐':h<17?'點心':'晚餐'; }
+function guessCat(ts){ const d=new Date(ts), h=d.getHours()+d.getMinutes()/60; const g=h<10.5?'早餐':h<14?'午餐':h<17?'點心':'晚餐';
+  return CATS.includes(g) ? g : CATS[0]; }   /* v3：只猜還存在的類別，猜不到用第一個 */
 
 let enId=null, enCat='', enNew=false;
-CATS.forEach(c=>{ const b=document.createElement('button'); b.className='cat'; b.textContent=c; b.dataset.c=c;
-  b.onclick=()=>{ enCat = enCat===c ? '' : c; syncCats(); }; $('enCats').appendChild(b); });
-function syncCats(){ document.querySelectorAll('#enCats .cat').forEach(b=>b.classList.toggle('on',b.dataset.c===enCat)); }
+/* v3：類別按鈕依 CATS 重畫（類別管理改動後也會呼叫） */
+function buildCatBtns(){ $('enCats').textContent='';
+  CATS.forEach(c=>{ const b=document.createElement('button'); b.className='cat'; b.textContent=c; b.dataset.c=c;
+    b.onclick=()=>{ enCat = dispCat(enCat)===c ? '' : c; syncCats(); }; $('enCats').appendChild(b); });
+  syncCats(); }
+function syncCats(){ document.querySelectorAll('#enCats .cat').forEach(b=>b.classList.toggle('on',b.dataset.c===dispCat(enCat))); }
+buildCatBtns();
 
 /* 打開記帳面板；isNew=剛拍完（按鈕顯示「略過」） */
 function openEntry(id, isNew){
-  const p=photos.find(x=>x.id===id); if(!p) return;
+  const p=recById(id); if(!p) return;   /* v3：打開的是「這筆」（主照片） */
   enId=id; enNew=!!isNew;
   $('enImg').src=p.thumbUrl; $('enTime').textContent=`${dateText(p.ts,S.date)} ${hm(p.ts)}`;
   $('enAmt').value = p.amount!==null ? String(p.amount) : '';
-  enCat = p.cat || (isNew ? guessCat(p.ts) : ''); syncCats();
+  enCat = p.cat0 || (isNew ? guessCat(p.ts) : ''); syncCats();
   $('enNote').value=p.note||''; $('enMsg').textContent='';
   if(typeof v2OpenLoc==='function') v2OpenLoc(p);   /* v2：帶入位置 */
+  if(typeof v3OpenPics==='function') v3OpenPics(p);  /* v3：這筆的照片（最多 5 張） */
   $('enSkip').textContent = isNew ? '略過' : (p.amount!==null||p.note||p.cat ? '清除這筆' : '取消');
   openSheet('sheetEntry');
   setTimeout(()=>{ try{ $('enAmt').focus(); }catch(e){} },280);
@@ -1871,7 +1963,7 @@ async function writeEntry(amount, cat, note, loc){
   rec.amount=amount; rec.cat=cat; rec.note=note;
   if(loc!==undefined){ if(loc) rec.loc=loc; else delete rec.loc; }
   try{ await DB.put(rec); }catch(e){ toast(e.message,3500); }
-  const p=photos.find(x=>x.id===enId); if(p){ p.amount=amount; p.cat=cat; p.note=note; if(loc!==undefined) p.loc=cleanLoc(loc); }
+  const p=photos.find(x=>x.id===enId); if(p){ p.amount=amount; p.cat=dispCat(cat); p.cat0=cat; p.note=note; if(loc!==undefined) p.loc=cleanLoc(loc); }
   closeSheets(); render(); if($('viewer').classList.contains('on')) showV();
 }
 $('enSave').onclick=async()=>{
@@ -1894,7 +1986,7 @@ $('enSkip').onclick=async()=>{
   closeSheets();
 };
 $('enAmt').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); $('enSave').click(); } });
-$('vNote').onclick=()=>{ const p=vList[vIdx]; if(p) openEntry(p.id,false); };
+$('vNote').onclick=()=>{ const p=vList[vIdx]; if(p) openEntry((recById(p.id)||p).id,false); };
 
 /* ---------- 統計 ---------- */
 let stPeriod='day';
@@ -2005,10 +2097,11 @@ async function exportPdf(list, label){
     const PW=595.28, PH=841.89, PX=1240, PY=Math.round(1240*PH/PW);
     // 預先算好每張照片所屬的時段
     const meta={}; const days={}; list.forEach(p=>{ (days[dayKey(p.ts)]=days[dayKey(p.ts)]||[]).push(p); });
-    Object.values(days).forEach(dl=>splitSessions(dl).forEach(s=>s.items.forEach((p,i)=>meta[p.id]={name:s.name,i:i+1,n:s.items.length})));
+    Object.values(days).forEach(dl=>splitSessions(dl).forEach(s=>s.items.forEach((p,i)=>meta[p.id]={name:s.name,i:i+1,n:s.items.length})));   // v3：list 是「一筆一筆」
     for(let i=0;i<list.length;i++){
       busy(true,`產生 PDF ${i+1} / ${list.length}`);
-      const p=list[i], rec=await DB.get(p.id), img=await loadImage(rec.full);
+      const p=list[i], pl=(p.pics&&p.pics.length)?p.pics:[p], imgs=[];
+      for(const q of pl){ const rq=await DB.get(q.id); if(rq && rq.full) imgs.push(await loadImage(rq.full)); }
       const c=document.createElement('canvas'); c.width=PX; c.height=PY; const x=c.getContext('2d');
       x.fillStyle='#fff'; x.fillRect(0,0,PX,PY);
       const font='"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif';
@@ -2017,11 +2110,12 @@ async function exportPdf(list, label){
       x.fillText(`${dateText(p.ts,S.date)}　${hm(p.ts)}`,110,78);
       x.fillStyle='#65716c'; x.font=`500 26px ${font}`;
       const m=meta[p.id]||{name:'',i:1,n:1};
-      x.fillText(`${S.prefix?S.prefix+'　':''}${m.name} 第 ${m.i} / ${m.n} 張${p.backfill?'　（相簿補登）':''}`,110,128);
+      x.fillText(`${S.prefix?S.prefix+'　':''}${m.name} 第 ${m.i} / ${m.n} 筆${pl.length>1?`（${pl.length} 張照片）`:''}${p.backfill?'　（相簿補登）':''}`,110,128);
       const ent=[p.cat, p.amount!==null?money(p.amount):'', p.note].filter(Boolean).join('　');
       if(ent){ x.fillStyle='#b42318'; x.font=`700 26px ${font}`; x.textAlign='right'; x.fillText(ent.length>40?ent.slice(0,40)+'…':ent, PX-80, 128); x.textAlign='left'; }
-      const ax=80, ay=200, aw=PX-160, ah=PY-200-150; const k=Math.min(aw/img.naturalWidth, ah/img.naturalHeight);
-      const w=img.naturalWidth*k, h=img.naturalHeight*k; x.drawImage(img, ax+(aw-w)/2, ay, w, h);
+      const ax=80, ay=200, aw=PX-160, ah=PY-200-150, nI=imgs.length, cols=nI>2?2:1, rows=Math.max(1,Math.ceil(nI/cols)), G=16, cw=(aw-G*(cols-1))/cols, ch=(ah-G*(rows-1))/rows;
+      imgs.forEach((img,j)=>{ const cx=ax+(j%cols)*(cw+G), cy=ay+Math.floor(j/cols)*(ch+G), k=Math.min(cw/img.naturalWidth, ch/img.naturalHeight);
+        const w=img.naturalWidth*k, h=img.naturalHeight*k; x.drawImage(img, cx+(cw-w)/2, cy+(nI===1?0:(ch-h)/2), w, h); });
       x.strokeStyle='#e2e5e0'; x.lineWidth=2; x.beginPath(); x.moveTo(80,PY-110); x.lineTo(PX-80,PY-110); x.stroke();
       x.fillStyle='#65716c'; x.font=`400 22px ${font}`;
       x.fillText('拍照記錄 · 時間於拍攝當下寫入照片',80,PY-90);
@@ -2048,7 +2142,7 @@ $('expCsvAll').onclick=()=>{ stPeriod='all'; if(!statItems().length){ bkMsg('還
 function openSheet(id){ $('mask').classList.add('on'); $(id).classList.add('on'); }
 function closeSheets(){ $('mask').classList.remove('on'); document.querySelectorAll('.sheet').forEach(s=>s.classList.remove('on')); }
 $('mask').onclick=closeSheets;
-$('btnExport').onclick=()=>{ const n=live().filter(p=>dayKey(p.ts)===selDay).length, all=live().length;
+$('btnExport').onclick=()=>{ const n=dayPics(selDay).length, all=live().reduce((s,r)=>s+r.pics.length,0);
   $('expDayLbl').textContent=`${keyToDate(selDay).getMonth()+1}/${keyToDate(selDay).getDate()}（${n} 張）`;
   $('expAllLbl').textContent=`全部（${all} 張）`; $('expDay').disabled=!n; $('expAll').disabled=!all; $('expMsg').textContent=''; showLastBackup();
   openSheet('sheetExport'); };
@@ -2095,27 +2189,36 @@ async function showStoreStatus(){
 /* 回收桶 */
 function renderTrash(){
   const box=$('trashList'); box.textContent='';
-  const T=photos.filter(p=>p.deleted).sort((a,b)=>b.deletedAt-a.deletedAt);
+  const del=photos.filter(p=>p.deleted), used=new Set(), T=[];
+  del.forEach(p=>{ if(p.grp) return; const all=[p,...del.filter(q=>q.grp===p.id && q.deletedAt===p.deletedAt)]; all.forEach(q=>used.add(q.id)); T.push({p,all}); });
+  del.forEach(p=>{ if(!used.has(p.id)) T.push({p,all:[p]}); });
+  T.sort((a,b)=>b.p.deletedAt-a.p.deletedAt);
   if(!T.length){ box.innerHTML='<p class="hint" style="margin-top:8px">回收桶是空的。</p>'; return; }
-  T.forEach(p=>{ const r=document.createElement('div'); r.className='trash-item';
+  T.forEach(({p,all})=>{ const r=document.createElement('div'); r.className='trash-item'; r.dataset.id=p.id;
     r.innerHTML=`<img alt=""><div class="info"><span></span><small></small></div><button class="mini">還原</button><button class="mini danger">永久刪除</button>`;
     r.querySelector('img').src=p.thumbUrl;
-    r.querySelector('.info span').textContent=`${dateText(p.ts,S.date)} ${hm(p.ts)}`;
+    r.querySelector('.info span').textContent=`${dateText(p.ts,S.date)} ${hm(p.ts)}${all.length>1?`　▣ 整筆 ${all.length} 張`:''}${p.grp?'　（從某筆移除的單張）':''}`;
     r.querySelector('.info small').textContent=`${Math.max(0,30-Math.floor((Date.now()-p.deletedAt)/864e5))} 天後自動清除`;
     const [bR,bD]=r.querySelectorAll('button');
-    bR.onclick=async()=>{ const rec=await DB.get(p.id); rec.deleted=false; rec.deletedAt=0; await DB.put(rec); await loadAll(); renderTrash(); render(); toast('已還原'); };
-    bD.onclick=async()=>{ if(!await ask('永久刪除後無法復原，確定嗎？','永久刪除')) return; await DB.del(p.id); await loadAll(); renderTrash(); render(); };
+    bR.onclick=async()=>{ let alone=false;
+      for(const q of all){ const rec=await DB.get(q.id); if(!rec) continue; rec.deleted=false; rec.deletedAt=0;
+        /* 單張還原：原本那筆已滿 5 張 → 還原成單獨一筆（照片不會遺失） */
+        if(all.length===1 && rec.grp){ const h=recById(rec.grp); if(h && h.id===rec.grp && h.pics.length>=PICS_MAX){ delete rec.grp; alone=true; } }
+        await DB.put(rec); }
+      await loadAll(); renderTrash(); render(); toast(alone?'已還原（原本那筆已滿 5 張，這張單獨成一筆）':all.length>1?`已還原整筆 ${all.length} 張`:'已還原', alone?3500:2200); };
+    bD.onclick=async()=>{ if(!await ask(all.length>1?`永久刪除這筆 ${all.length} 張照片？刪除後無法復原。`:'永久刪除後無法復原，確定嗎？','永久刪除')) return; for(const q of all) await DB.del(q.id); await loadAll(); renderTrash(); render(); };
     box.appendChild(r); });
 }
 
 /* =========================================================
    11. 備份（JSON 匯出）與匯入
-   格式：{ app:"mealcam", version:1, exportedAt, settings, photos:[{id,ts,backfill,deleted,deletedAt,savedAt,amount,cat,note,loc?(v2 選填位置),image,origImage?(加字前原圖):"data:image/jpeg;base64,..."}] }
+   格式：{ app:"mealcam", version:1, exportedAt, settings, photos:[{id,ts,backfill,deleted,deletedAt,savedAt,amount,cat,note,loc?(v2 選填位置),grp?(v3 同一筆的主照片 id),image,origImage?(加字前原圖):"data:image/jpeg;base64,..."}] }
+   v3：最外層多 cats:[類別名稱…]（選填）
    ========================================================= */
 async function buildBackup(){
   const recs=await DB.allMerged(); const out=[];
-  for(const r of recs) out.push({id:r.id,ts:r.ts,backfill:!!r.backfill,deleted:!!r.deleted,deletedAt:r.deletedAt||0,savedAt:r.savedAt||0,amount:(typeof r.amount==='number'?r.amount:null),cat:r.cat||'',note:r.note||'',loc:cleanLoc(r.loc)||undefined,image:await blobToDataURL(r.full),origImage:r.orig?await blobToDataURL(r.orig):undefined});
-  return JSON.stringify({app:'mealcam',version:1,exportedAt:new Date().toISOString(),settings:S,photos:out});
+  for(const r of recs) out.push({id:r.id,ts:r.ts,backfill:!!r.backfill,deleted:!!r.deleted,deletedAt:r.deletedAt||0,savedAt:r.savedAt||0,amount:(typeof r.amount==='number'?r.amount:null),cat:r.cat||'',note:r.note||'',loc:cleanLoc(r.loc)||undefined,grp:(typeof r.grp==='string'&&r.grp)||undefined,image:await blobToDataURL(r.full),origImage:r.orig?await blobToDataURL(r.orig):undefined});
+  return JSON.stringify({app:'mealcam',version:1,exportedAt:new Date().toISOString(),settings:S,cats:CATS,photos:out});
 }
 function bkMsg(t,ok){ ['bkMsg','expMsg'].forEach(id=>{ const m=$(id); if(m){ m.textContent=t; m.className='msg '+(ok?'ok':'err'); } }); }
 $('bkCopy').onclick=async()=>{ busy(true,'整理資料…'); const json=await buildBackup(); busy(false);
@@ -2140,8 +2243,10 @@ async function importJson(text){
       const full=dataURLToBlob(p.image); const img=await loadImage(full);
       const T=360, tk=T/Math.min(img.naturalWidth,img.naturalHeight), tc=document.createElement('canvas');
       tc.width=Math.round(img.naturalWidth*tk); tc.height=Math.round(img.naturalHeight*tk); tc.getContext('2d').drawImage(img,0,0,tc.width,tc.height);
-      await DB.put({id:p.id,ts:p.ts,backfill:!!p.backfill,deleted:!!p.deleted,deletedAt:p.deletedAt||0,savedAt:p.savedAt||0,amount:(typeof p.amount==='number'&&isFinite(p.amount)?p.amount:null),cat:typeof p.cat==='string'?p.cat.slice(0,20):'',note:typeof p.note==='string'?p.note.slice(0,500):'',...(cleanLoc(p.loc)?{loc:cleanLoc(p.loc)}:{}),full,orig:(typeof p.origImage==='string'&&p.origImage.startsWith('data:image/'))?dataURLToBlob(p.origImage):undefined,thumb:await toBlob(tc,0.75)}); added++; }
+      await DB.put({id:p.id,ts:p.ts,backfill:!!p.backfill,deleted:!!p.deleted,deletedAt:p.deletedAt||0,savedAt:p.savedAt||0,amount:(typeof p.amount==='number'&&isFinite(p.amount)?p.amount:null),cat:typeof p.cat==='string'?p.cat.slice(0,20):'',note:typeof p.note==='string'?p.note.slice(0,500):'',...(cleanLoc(p.loc)?{loc:cleanLoc(p.loc)}:{}),...(typeof p.grp==='string'&&p.grp&&p.grp.length<=40&&p.grp!==p.id?{grp:p.grp}:{}),full,orig:(typeof p.origImage==='string'&&p.origImage.startsWith('data:image/'))?dataURLToBlob(p.origImage):undefined,thumb:await toBlob(tc,0.75)}); added++; }
     if(data.settings && typeof data.settings==='object'){ S={...DEFAULTS,...S,...data.settings}; saveSettings(); }
+    /* v3：類別清單：這台沒存過 mealcam.cats（新手機）→ 直接用備份的清單；已有自訂清單 → 合併（保留現有順序，加上備份裡多的）。都經 cleanCats：1～10 字、不重複、最多 20 個、一定有「其他」 */
+    if(Array.isArray(data.cats)){ let had=null; try{ had=localStorage.getItem(CAT_KEY); }catch(e){} CATS = had===null ? cleanCats(data.cats) : cleanCats([...CATS, ...data.cats]); saveCats(); buildCatBtns(); }
   }catch(e){ busy(false); bkMsg('匯入失敗：'+(e.message||'照片無法讀取'),false); return; }
   busy(false); await loadAll(); render(); syncSettingsUI(); renderTrash();
   bkMsg(`匯入完成：新增 ${added} 張${skipped?`，略過重複 ${skipped} 張`:''}`,true); $('imText').value='';
@@ -2334,7 +2439,7 @@ $('imFile').onchange=async e=>{ const f=e.target.files[0]; if(!f) return; import
   const DL = el('calDayList');   /* 工程師複查 R1：固定參照（手機時會被搬進 #calDays，重畫前先搬出來） */
   const coordEl = el('enLocCoord');   /* 座標輸入欄（可拿掉；沒有這欄時一律當空白） */
   const setCoord = v => { if(coordEl) coordEl.value = v; };
-  const wideMQ = matchMedia('(min-width:768px)');
+  const wideMQ = matchMedia('(min-width:769px)');
   let mode = 'list', calSel = null, mapOn = false;
   const curYM = () => { const d=new Date(); return { y:d.getFullYear(), m:d.getMonth() }; };
   const idxOf = o => o.y*12 + o.m;
@@ -2583,6 +2688,151 @@ $('imFile').onchange=async e=>{ const f=e.target.files[0]; if(!f) return; import
     if(label) loc.label = label;
     return { ok:true, loc: cleanLoc(loc) };
   };
+})();
+</script>
+<script>
+/* =========================================================
+   v3（帥 2026-11-25 12:31「拍照記錄 還要再修」）：類別管理、一筆多張（記一筆畫面的照片列）
+   GROK 輔助・作者：帥
+   - 類別：存在 localStorage mealcam.cats；改名時舊紀錄一起改（資料庫＋備份副本＋摘要都透過 DB.put）
+   - 多張：追加的照片是 photos 裡的新一筆，grp＝這筆主照片 id；一筆最多 5 張（PICS_MAX）
+   ========================================================= */
+(()=>{
+  const el = id => document.getElementById(id);
+  const len = s => [...s].length;
+
+  /* ---------- 類別管理 ---------- */
+  let editing = null;
+  function catMsg(t, ok){ const m=el('catMsg'); m.textContent=t; m.className='msg '+(ok?'ok':'err')+' has-sym'; }
+  function checkName(n, except){
+    if(len(n)<1 || len(n)>CAT_LEN) return `▲ 類別名稱需 1～${CAT_LEN} 字（現在 ${len(n)} 字）`;
+    if(CATS.some(c=>c===n && c!==except)) return `▲ 「${n}」已經有了，類別名稱不能重複`;
+    return ''; }
+  function afterCats(msg){
+    const saved = saveCats(); buildCatBtns(); remapCats(); render(); renderCats();
+    if(!saved) catMsg('▲ 類別無法存進這支手機（儲存空間可能已滿），重新開啟後會回到原本的類別', false);
+    else if(msg) catMsg(msg, true); else el('catMsg').textContent=''; }
+  function mk(text, act, disabled, label){ const b=document.createElement('button'); b.type='button'; b.className='mini'; b.textContent=text; b.dataset.act=act; b.disabled=!!disabled; if(label) b.setAttribute('aria-label',label); return b; }
+  function renderCats(){
+    const box=el('catList'); box.textContent='';
+    CATS.forEach((c,i)=>{
+      const li=document.createElement('li'); li.className='catrow'; li.dataset.cat=c;
+      const no=document.createElement('span'); no.className='catno'; no.textContent=`${i+1}.`;
+      const btns=document.createElement('span'); btns.className='catbtns';
+      if(editing===c){
+        const inp=document.createElement('input'); inp.type='text'; inp.className='catEdit'; inp.maxLength=30; inp.value=c; inp.setAttribute('aria-label',`「${c}」的新名稱（1～${CAT_LEN} 字）`);
+        const ok=mk('✓ 儲存','ok'), no2=mk('取消','cancel');
+        ok.onclick=()=>doRename(c, inp.value.trim()); no2.onclick=()=>{ editing=null; el('catMsg').textContent=''; renderCats(); };
+        inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); ok.click(); } });
+        btns.append(ok,no2); li.append(no,inp,btns); setTimeout(()=>{ try{ inp.focus(); }catch(e){} },30);
+      } else {
+        const name=document.createElement('span'); name.className='row-cat'; name.dataset.cat=c; name.textContent=c;
+        const lock = c===CAT_OTHER;
+        const up=mk('▲ 上移','up', i===0, `把「${c}」往上移`), dn=mk('▼ 下移','down', i===CATS.length-1, `把「${c}」往下移`);
+        const rn=mk('改名','ren', lock, lock?'「其他」不能改名':`把「${c}」改名`), dl=mk('刪除','del', lock, lock?'「其他」不能刪除':`刪除「${c}」`); dl.classList.add('danger');
+        up.onclick=()=>move(i,-1); dn.onclick=()=>move(i,1);
+        rn.onclick=()=>{ editing=c; el('catMsg').textContent=''; renderCats(); }; dl.onclick=()=>doDel(c);
+        btns.append(up,dn,rn,dl); li.append(no,name);
+        if(lock){ const k=document.createElement('span'); k.className='catlock'; k.textContent='（固定，不能刪除或改名）'; li.append(k); }
+        li.append(btns);
+      }
+      box.appendChild(li); });
+  }
+  function move(i,d){ const j=i+d; if(j<0 || j>=CATS.length) return; [CATS[i],CATS[j]]=[CATS[j],CATS[i]]; afterCats(''); }
+  async function doRename(oldN, n){
+    if(oldN===CAT_OTHER){ catMsg('▲ 「其他」不能改名', false); return; }
+    if(n===oldN){ editing=null; renderCats(); return; }
+    const e=checkName(n, oldN); if(e){ catMsg(e, false); return; }
+    const ids=photos.filter(p=>p.cat0===oldN).map(p=>p.id); let k=0, skip=0;
+    busy(true,'更新類別…');
+    try{
+      for(const id of ids){ busy(true,`更新類別 ${k+skip+1} / ${ids.length}`);
+        const rec=await DB.get(id); if(!rec || rec._lowres){ skip++; continue; }   /* 資料庫暫時讀不到的不寫（避免用小縮圖蓋掉原圖） */
+        rec.cat=n; await DB.put(rec); k++; const p=photos.find(x=>x.id===id); if(p) p.cat0=n; }
+    }catch(err){ busy(false); catMsg('▲ 更新舊紀錄失敗：'+(err&&err.message||''), false); return; }
+    busy(false);
+    CATS[CATS.indexOf(oldN)]=n; editing=null; if(enCat===oldN) enCat=n;
+    afterCats(`● 已把「${oldN}」改名為「${n}」，${k} 筆紀錄一起更新${skip?`（${skip} 筆暫時讀不到，重新整理後再改一次）`:''}`);
+  }
+  async function doDel(c){
+    if(c===CAT_OTHER){ catMsg('▲ 「其他」不能刪除', false); return; }
+    if(CATS.length<=1){ catMsg('▲ 至少要保留 1 個類別', false); return; }
+    const n=photos.filter(p=>p.cat0===c).length;
+    if(!await ask(`刪除類別「${c}」？${n?`用到它的 ${n} 筆紀錄會顯示成「其他」，資料不會刪除；`:''}之後再新增「${c}」會自動歸回。`,'刪除類別')) return;
+    CATS=CATS.filter(x=>x!==c); if(editing===c) editing=null;
+    afterCats(`● 已刪除類別「${c}」`);
+  }
+  el('catAdd').onclick=()=>{
+    const n=el('catNew').value.trim();
+    if(CATS.length>=CAT_MAX){ catMsg(`▲ 最多 ${CAT_MAX} 個類別（現在 ${CATS.length} 個），請先刪除不用的類別`, false); return; }
+    const e=checkName(n); if(e){ catMsg(e, false); return; }
+    CATS.push(n); el('catNew').value=''; afterCats(`● 已新增類別「${n}」`);
+  };
+  el('catNew').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); el('catAdd').click(); } });
+  el('btnSettings').addEventListener('click',()=>{ editing=null; el('catMsg').textContent=''; renderCats(); });
+  renderCats();
+
+  /* ---------- 一筆多張：記一筆畫面的照片列 ---------- */
+  let cur=null;
+  function picMsg(t){ const m=el('enMsg'); m.textContent=t; m.className='msg err has-sym'; }
+  window.v3OpenPics = function(r){
+    cur=r; const list=(r.pics&&r.pics.length)?r.pics:[r], box=el('enPics'); box.textContent='';
+    list.forEach((q,i)=>{
+      const li=document.createElement('li'); li.className='pic'; li.dataset.id=q.id;
+      const img=document.createElement('img'); img.src=q.thumbUrl; img.alt=`第 ${i+1} 張，${hm(q.ts)}${q.backfill?'（補登）':''}`;
+      const no=document.createElement('span'); no.className='picno'; no.textContent=String(i+1); no.setAttribute('aria-hidden','true');
+      const del=document.createElement('button'); del.type='button'; del.className='picdel'; del.textContent='✕ 移除'; del.setAttribute('aria-label',`移除第 ${i+1} 張`);
+      del.onclick=()=>removePic(q.id);
+      li.append(img,no,del); box.appendChild(li); });
+    el('enPicCount').textContent=`${list.length} / ${PICS_MAX} 張`;
+    const full=list.length>=PICS_MAX; el('enAddShotBtn').disabled=full; el('enAddAlbumBtn').disabled=full;
+    el('enPicHint').textContent = full ? `▲ 一筆最多 ${PICS_MAX} 張，已滿；要換別張請先移除一張。` : `一筆最多 ${PICS_MAX} 張（還可以加 ${PICS_MAX-list.length} 張）；照片共用上面的金額、類別、筆記。`;
+    el('enImg').src=r.thumbUrl;
+  };
+  async function refresh(id){
+    await loadAll(); render();
+    const r=recById(id); if(r){ enId=r.id; v3OpenPics(r); }
+    if(el('viewer').classList.contains('on')){ vList=dayPics(selDay); if(!vList.length) closeViewer(); else { vIdx=Math.min(vIdx,vList.length-1); showV(); } }
+  }
+  async function addFiles(files, backfill){
+    if(!files.length || !cur) return;
+    const r=recById(cur.id); if(!r) return; const n=r.pics.length;
+    if(n+files.length>PICS_MAX){ picMsg(`▲ 一筆最多 ${PICS_MAX} 張：這筆已有 ${n} 張，這次選了 ${files.length} 張，最多只能再加 ${Math.max(0,PICS_MAX-n)} 張`); return; }
+    busy(true,'加入照片…'); let k=0;
+    try{ for(const f of files){ const rec=await processFile(f, backfill, r.id); if(rec) k++; busy(true,'加入照片…'); } }
+    catch(e){ busy(false); await refresh(r.id); picMsg('▲ 照片處理失敗：'+(e&&e.message||'')); return; }
+    busy(false); await refresh(r.id);
+    el('enMsg').textContent=''; toast(k ? `已加入 ${k} 張（這筆共 ${n+k} 張）` : '沒有加入照片');
+  }
+  el('enAddShotBtn').onclick=()=>{ el('enAddShot').value=''; el('enAddShot').click(); };
+  el('enAddAlbumBtn').onclick=()=>{ el('enAddAlbum').value=''; el('enAddAlbum').click(); };
+  el('enAddShot').onchange=e=>addFiles([...e.target.files], false);
+  el('enAddAlbum').onchange=e=>addFiles([...e.target.files], true);
+
+  /* 移除單張：放進回收桶（可還原）；最後 1 張不能移除；移除第 1 張時，下一張接手這筆的金額／類別／筆記／位置 */
+  async function removePic(id){
+    const r=recById(id); if(!r) return;
+    if(r.pics.length<=1){ picMsg('▲ 每筆至少要有 1 張照片；要刪除整筆，請在照片檢視畫面按「刪除」'); return; }
+    if(!await ask('移除這張照片？會移到回收桶，30 天內可在設定裡還原。','移除')) return;
+    const now=Date.now();
+    try{
+      if(id===r.id){
+        /* 優先選和這筆同一天的下一張接手，這筆才不會跑到別天 */
+        const nx=r.pics.slice(1).find(q=>dayKey(q.ts)===dayKey(r.ts)) || r.pics[1];
+        const P=await DB.get(r.id), N=await DB.get(nx.id);
+        if(!P || !N || P._lowres || N._lowres){ picMsg('▲ 資料庫暫時讀不到，請重新整理後再試'); return; }
+        N.amount=(typeof P.amount==='number')?P.amount:null; N.cat=P.cat||''; N.note=P.note||''; if(P.loc) N.loc=P.loc; else delete N.loc; delete N.grp;
+        await DB.put(N);
+        for(const q of photos.filter(q=>q.grp===r.id && q.id!==N.id)){ const M=await DB.get(q.id); if(M && !M._lowres){ M.grp=N.id; await DB.put(M); } }
+        P.grp=N.id; P.amount=null; P.cat=''; P.note=''; delete P.loc; P.deleted=true; P.deletedAt=now;
+        await DB.put(P); await refresh(N.id);
+      } else {
+        const M=await DB.get(id); if(!M || M._lowres){ picMsg('▲ 資料庫暫時讀不到，請重新整理後再試'); return; }
+        M.deleted=true; M.deletedAt=now; await DB.put(M); await refresh(r.id);
+      }
+    }catch(e){ picMsg('▲ 移除失敗：'+(e&&e.message||'')); return; }
+    el('enMsg').textContent=''; toast('已移除這張（設定的回收桶可以還原）');
+  }
 })();
 </script>
 </body>
